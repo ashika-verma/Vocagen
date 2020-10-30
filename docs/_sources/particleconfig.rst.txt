@@ -1,0 +1,6 @@
+
+particleconfig.py
+=================
+
+.. automodule:: common.particleconfig
+    :members:

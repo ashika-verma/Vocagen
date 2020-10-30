@@ -1,0 +1,6 @@
+
+panels.py
+=========
+
+.. automodule:: common.panels
+    :members:

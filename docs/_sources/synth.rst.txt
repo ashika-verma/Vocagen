@@ -1,0 +1,6 @@
+
+synth.py
+========
+
+.. automodule:: common.synth
+    :members:
