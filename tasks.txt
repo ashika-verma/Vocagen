@@ -1,0 +1,18 @@
+Jake:
+- graphical assets:
+  - mic sprite
+  - add more assets
+  - get a sense of a background
+  - detect when things are clicked on
+  
+Ashika
+  - 10 second recording
+  - listen to audio stream
+  - convert to midi and durations (midi, duration)
+  - play audio which audio returns
+  - save sample and then loop it
+  - look into Scheduler
+  
+Anders
+  - more vocal stuff
+  
