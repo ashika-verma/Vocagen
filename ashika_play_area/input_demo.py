@@ -44,6 +44,8 @@ from kivy.clock import Clock as kivyClock
 from random import randint
 import aubio
 
+import harmony
+
 import numpy as np
 
 
@@ -369,9 +371,10 @@ class VoiceAudioWriter(AudioWriter):
             nearest_midi = round(self.cur_pitch)
 
 
-            if nearest_midi != self.previous_midi and nearest_midi>= self.lower_midi_bound and nearest_midi<= self.higher_midi_bound:
-                self.previous_midi = nearest_midi
-                self.pitch_and_time += [(nearest_midi, time)]
+            if nearest_midi != self.previous_midi and (nearest_midi>= self.lower_midi_bound and nearest_midi<= self.higher_midi_bound or nearest_midi == 0):
+                if abs(nearest_midi - self.previous_midi) < 10 or nearest_midi == 0 or self.previous_midi == 0:
+                    self.previous_midi = nearest_midi
+                    self.pitch_and_time += [(nearest_midi, time)]
 
             self.frame += len(frames)
 
@@ -434,7 +437,7 @@ class MainWidget(BaseWidget) :
         self.sched.set_generator(self.synth)
 
         # Note Sequencers
-        self.seq = None
+        self.seq = []
 
         # live Generator
         self.live_wave = None
@@ -496,20 +499,25 @@ class MainWidget(BaseWidget) :
             if data:
                 print(data)
                 wave_gen, filename, duration_midi = data
+                for i in range(len(duration_midi)):
+                    if duration_midi[i][0] < 0.1:
+                        duration_midi[i] = (duration_midi[i][0], 0)
+                duration_midi = harmony.harmonize(duration_midi)
                 self.live_wave = wave_gen
                 
                 tempo = 120
                 multiplier = 1/60*tempo*480
-                converted_midi_duration = [(i*multiplier, j)
-                                           for i, j in duration_midi]
-
-                self.seq = NoteSequencer(
-                    self.sched, self.synth, 1, (0, 65), converted_midi_duration, True)
+                converted_midi_duration = [[(i*multiplier, j)
+                                           for i, j in k] for k in duration_midi]
+                
+                for i in converted_midi_duration:
+                    self.seq.append(NoteSequencer(self.sched, self.synth, 1, (0, 65), i, True))
                
             
         if keycode[1] == "s" and self.seq:
             print("hello")
-            self.seq.start()
+            for i in self.seq:
+                i.start()
             if self.live_wave:
                 self.mixer.add(self.live_wave)
 

@@ -134,12 +134,16 @@ def harmonize(notes):
     alt_notes = []
     ten_notes = []
     ind = 0
-    for i in range(len(pitches)):
+    for i in range(len(notes)):
         if notes[i][1] != 0:
             bass_notes.append((notes[i][0], bass[ind]))
             alt_notes.append((notes[i][0], alto[ind]))
             ten_notes.append((notes[i][0], tenor[ind]))
             ind+=1
+        else:
+            bass_notes.append((notes[i][0],0))
+            alt_notes.append((notes[i][0], 0))
+            ten_notes.append((notes[i][0], 0))
     return [notes,bass_notes,alt_notes,ten_notes]
     
     
