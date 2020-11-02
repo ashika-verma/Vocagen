@@ -49,9 +49,9 @@ class AudioWriter(object):
         """
 
         if self.active:
-            self.stop()
+            return self.stop()
         else:
-            self.start()
+            return self.start()
 
     def start(self) :
         """
