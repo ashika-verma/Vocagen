@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 #####################################################################
 #
 # input_demo.py
@@ -45,6 +47,7 @@ from random import randint
 import aubio
 
 import harmony
+from InteractiveImage import InteractiveImage
 
 import numpy as np
 
@@ -419,6 +422,24 @@ class MainWidget(BaseWidget) :
         self.canvas.add(self.pitch_meter)
         self.canvas.add(self.pitch_graph)
 
+        # Record button
+        self.record_button = InteractiveImage()
+        self.record_button.source = "../data/mic.png"
+        self.record_button.x = 400
+        self.record_button.y = 400
+        self.record_button.size = (100, 100)
+        self.record_button.set_callback(self.init_recording)
+        self.add_widget(self.record_button)
+
+        # Play button
+        self.play_button = InteractiveImage()
+        self.play_button.source = "../data/play.png"
+        self.play_button.x = 600
+        self.play_button.y = 400
+        self.play_button.size = (100, 100)
+        self.play_button.set_callback(self.play_recording)
+        self.add_widget(self.play_button)
+
         self.canvas.add(self.anim_group)
 
         self.onset_disp = None
@@ -489,37 +510,42 @@ class MainWidget(BaseWidget) :
             self.onset_disp.set_type(msg)
             self.onset_disp = None
 
+    def init_recording(self):
+        data = self.recorder.toggle()
+        if data:
+            print(data)
+            wave_gen, filename, duration_midi = data
+            for i in range(len(duration_midi)):
+                if duration_midi[i][0] < 0.1:
+                    duration_midi[i] = (duration_midi[i][0], 0)
+            duration_midi = harmony.harmonize(duration_midi)
+            self.live_wave = wave_gen
+
+            tempo = 120
+            multiplier = 1/60*tempo*480
+            converted_midi_duration = [[(i*multiplier, j)
+                                        for i, j in k] for k in duration_midi]
+
+            for i in converted_midi_duration:
+                self.seq.append(NoteSequencer(self.sched, self.synth, 1, (0, 65), i, True))
+
+    def play_recording(self):
+        print("hello")
+        for i in self.seq:
+            i.start()
+        if self.live_wave:
+            self.mixer.add(self.live_wave)
+
     def on_key_down(self, keycode, modifiers):
         t = lookup(keycode[1], ['up', 'down'], [.001, -.001])
         if t is not None:
             self.onset_detector.onset_thresh += t
 
         if keycode[1] == "w":
-            data = self.recorder.toggle()
-            if data:
-                print(data)
-                wave_gen, filename, duration_midi = data
-                for i in range(len(duration_midi)):
-                    if duration_midi[i][0] < 0.1:
-                        duration_midi[i] = (duration_midi[i][0], 0)
-                duration_midi = harmony.harmonize(duration_midi)
-                self.live_wave = wave_gen
-                
-                tempo = 120
-                multiplier = 1/60*tempo*480
-                converted_midi_duration = [[(i*multiplier, j)
-                                           for i, j in k] for k in duration_midi]
-                
-                for i in converted_midi_duration:
-                    self.seq.append(NoteSequencer(self.sched, self.synth, 1, (0, 65), i, True))
+            self.init_recording()
                
-            
         if keycode[1] == "s" and self.seq:
-            print("hello")
-            for i in self.seq:
-                i.start()
-            if self.live_wave:
-                self.mixer.add(self.live_wave)
+            self.play_recording()
 
 
 run(MainWidget())
