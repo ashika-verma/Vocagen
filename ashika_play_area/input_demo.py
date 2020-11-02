@@ -50,7 +50,7 @@ import harmony
 from InteractiveImage import InteractiveImage
 
 import numpy as np
-
+import math
 
 # First-in First-out buffer used for buffering audio data
 class FIFOBuffer(object):
@@ -123,16 +123,24 @@ class PitchDetector(object):
     # midi value.
     # Returns 0 if a strong pitch is not found.
     def write(self, signal):
-        conf = 0
-
         self.buffer.write(signal) # insert data
 
         # read data in the fixed chunk sizes, as many as possible.
         # keep only the highest confidence estimate of the pitches found.
         while self.buffer.get_read_available() > self.buffer_size:
-            p, c = self._process_window(self.buffer.read(self.buffer_size))
-            if c > conf:
-                self.cur_pitch = p
+            self.cur_pitch = 0 #default
+            x = self.buffer.read(self.buffer.get_read_available()) #screw fixed amounts, just read the whole thing
+            freq = abs(np.fft.rfft(x)) # fft of input signal
+            m = max(freq[6:]) #largest non-tiny value
+            if m>10:
+                loc = np.where(freq == max(freq[6:]))[0][0]
+                #take weighted averages of frequencies near maximum
+                real = (freq[loc-1]*(loc-1)+freq[loc]*loc+freq[loc+1]*(loc+1))/(sum(freq[loc-1:loc+2]))
+                self.cur_pitch = 69 + 12 * math.log2(real*44100/len(x)/440) #convert to midi pitch
+            # p, c = self._process_window(x)
+            # if c > conf:
+            #     self.cur_pitch = p
+            #     conf = c
         return self.cur_pitch
 
     # helper function for finding the pitch of the fixed buffer signal.
@@ -357,6 +365,7 @@ class VoiceAudioWriter(AudioWriter):
             
             live_wave = WaveArray(output, self.num_channels)
             wave_gen = WaveGenerator(live_wave, self.num_channels)
+            #wave_gen.set_gain(0.7)
 
             # Reset information
             self.frame = 0
@@ -516,18 +525,19 @@ class MainWidget(BaseWidget) :
             print(data)
             wave_gen, filename, duration_midi = data
             for i in range(len(duration_midi)):
-                if duration_midi[i][0] < 0.1:
+                if duration_midi[i][0] < 0.12:
                     duration_midi[i] = (duration_midi[i][0], 0)
             duration_midi = harmony.harmonize(duration_midi)
             self.live_wave = wave_gen
-
+            print([[i[1] for i in j] for j in duration_midi])
+            
             tempo = 120
             multiplier = 1/60*tempo*480
             converted_midi_duration = [[(i*multiplier, j)
                                         for i, j in k] for k in duration_midi]
 
             for i in converted_midi_duration:
-                self.seq.append(NoteSequencer(self.sched, self.synth, 1, (0, 65), i, True))
+                self.seq.append(NoteSequencer(self.sched, self.synth, 1, (0, 0), i, True))
 
     def play_recording(self):
         print("hello")
