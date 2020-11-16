@@ -47,7 +47,7 @@ from random import randint
 import aubio
 
 import harmony
-from InteractiveImage import InteractiveImage
+from graphics import InteractiveImage
 
 import numpy as np
 import math
