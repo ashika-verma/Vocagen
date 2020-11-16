@@ -25,6 +25,7 @@ from kivy.uix.behaviors import ButtonBehavior
 from ashika_play_area.input_demo import *
 
 from graphics import Scene
+
   
 ## not necessary while using .kv file 
 from kivy.uix.checkbox import CheckBox 
@@ -69,7 +70,13 @@ class CustomDropDown(DropDown):
 
 
 class GenrePopup(Popup):
-    pass
+    def __init__(self, callback):
+        super(GenrePopup, self).__init__()
+        self.callback =  callback
+    def checkbox_callback(self, obj, group, label, value):
+        self.callback(value, label)
+        print(group)
+
 
 
 class RecordPopup(Popup):
@@ -92,12 +99,21 @@ class RecordPopup(Popup):
         
 
 class IntroScreen(BaseWidget):
+    image = "data/bedroom.jpg"
     def __init__(self):
         super(IntroScreen, self).__init__()
-        self.genre_popup = GenrePopup()
+        self.genre_popup = GenrePopup(None)
         self.volume_popup = VolumePopup(self.slider_callback)
         self.record_popup = RecordPopup(self.init_recording, self.play_recording)
         self.instruments_popup = InstrumentPopup()
+
+        self.audio = Audio(2, input_func=self.receive_audio,
+                           num_input_channels=1)
+        self.mixer = Mixer()
+        self.audio.set_generator(self.mixer)
+        self.pitch = PitchDetector()
+        self.recorder = VoiceAudioWriter('data')
+        self.playing = False
 
         self.scene = Scene()
         self.add_widget(self.scene)
@@ -108,11 +124,6 @@ class IntroScreen(BaseWidget):
 
         self.audio = Audio(2, input_func=self.receive_audio,
                            num_input_channels=1)
-        self.mixer = Mixer()
-        self.audio.set_generator(self.mixer)
-        self.pitch = PitchDetector()
-        self.recorder = VoiceAudioWriter('data')
-        self.playing = False
 
         self.cur_pitch = 0
         self.midi_notes = None

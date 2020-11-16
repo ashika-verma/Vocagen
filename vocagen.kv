@@ -11,11 +11,12 @@
 <LabelCheckBox@BoxLayout>
     text: ''
     group: ''
-    active: cb.active
+    checkbox_click: print
 
     CheckBox:
         id: cb
         group: root.group
+        on_active: root.checkbox_click(self, root.group, root.text, self.active) 
     PressLabel:
         on_press: cb._do_press()
         text: root.text
@@ -76,24 +77,30 @@
         SimpleLabel:
             text: "GENRE"
         LabelCheckBox:
+            checkbox_click: root.checkbox_callback
             text: "classical"
             group: "genres"
         LabelCheckBox:
+            checkbox_click: root.checkbox_callback
             text: "pop"
             group: "genres"
         LabelCheckBox:
+            checkbox_click: root.checkbox_callback
             text: "jazz"
             group: "genres"
         SimpleLabel:
             text: "OTHER"
         LabelCheckBox:
+            checkbox_click: root.checkbox_callback
             text: "classical"
             group: "other"
         LabelCheckBox:
             text: "pop"
+            checkbox_click: root.checkbox_callback
             group: "other"
         LabelCheckBox:
             text: "jazz"
+            checkbox_click: root.checkbox_callback
             group: "other"
 
 
