@@ -557,5 +557,5 @@ class MainWidget(BaseWidget) :
         if keycode[1] == "s" and self.seq:
             self.play_recording()
 
-
-run(MainWidget())
+if __name__ == "__main__":
+    run(MainWidget())

@@ -102,8 +102,17 @@ class IntroScreen(BaseWidget):
         self.audio.set_generator(self.mixer)
         self.pitch = PitchDetector()
         self.recorder = VoiceAudioWriter('data')
+        self.playing = False
 
         self.cur_pitch = 0
+        self.midi_notes = None
+        
+        self.bass = [((40,60),(0,0)),((43,64),(0,42)),((28,48),(0,33))]
+        self.tenor = [((52,69),(0,0)),((52,69),(0,41)),((45,64),(0,27))]
+        self.alto = [((57,77),(0,0)),((60,79),(0,40)),((52,72),(0,28)),((67,86),(0,73))]
+        self.instruments = [self.bass,self.tenor,self.alto]
+        
+        self.indices = [0,0,0]
 
         # Note Scheduler
         self.synth = Synth('data/FluidR3_GM.sf2')
@@ -121,6 +130,32 @@ class IntroScreen(BaseWidget):
 
         # live Generator
         self.live_wave = None
+        
+    def slider_callback(self, voice, value):
+        if voice == 'alto':
+            self.indices[2] == value
+        if voice == 'tenor':
+            self.indices[1] == value
+        if voice == 'bass':
+            self.indices[0] == value
+        if self.live_wave is not None:
+            for i in self.seq:
+                i.stop()
+            self.mixer.remove(self.live_wave)
+            duration_midi = harmony.harmonize(duration_midi, brange = self.bass[self.indices[0]][0],
+                                              trange = self.tenor[self.indices[1]][0],
+                                              arange = self.alto[self.indices[2]][0])
+            tempo = 120
+            multiplier = 1/60*tempo*480
+            converted_midi_duration = [[(i*multiplier, j)
+                                        for i, j in k] for k in duration_midi]
+            
+            for i in range(3):
+                self.seq[i] = NoteSequencer(
+                    self.sched, self.synth, 1, self.instruments[i][self.indices[i]][1], 
+                    converted_midi_duration[i+1], True)
+            if self.playing:
+                self.play_recording()
 
     def on_update(self):
         self.audio.on_update()
@@ -153,20 +188,25 @@ class IntroScreen(BaseWidget):
             for i in range(len(duration_midi)):
                 if duration_midi[i][0] < 0.12:
                     duration_midi[i] = (duration_midi[i][0], 0)
-            duration_midi = harmony.harmonize(duration_midi)
+            self.midi_notes = duration_midi
+            duration_midi = harmony.harmonize(duration_midi, brange = self.bass[self.indices[0]][0],
+                                              trange = self.tenor[self.indices[1]][0],
+                                              arange = self.alto[self.indices[2]][0])
             self.live_wave = wave_gen
-            print([[i[1] for i in j] for j in duration_midi])
+            # print([[i[1] for i in j] for j in duration_midi])
 
             tempo = 120
             multiplier = 1/60*tempo*480
             converted_midi_duration = [[(i*multiplier, j)
                                         for i, j in k] for k in duration_midi]
-
-            for i in converted_midi_duration:
-                self.seq.append(NoteSequencer(
-                    self.sched, self.synth, 1, (0, 0), i, True))
+            
+            for i in range(3):
+                self.seq[i] = NoteSequencer(
+                    self.sched, self.synth, 1, self.instruments[i][self.indices[i]][1], 
+                    converted_midi_duration[i+1], True)
 
     def play_recording(self):
+        self.playing = True
         for i in self.seq:
             i.start()
         if self.live_wave:
@@ -190,5 +230,5 @@ class Vocagen(App):
 
 
 
-if __name__ == "__main__":
+
     Vocagen().run()

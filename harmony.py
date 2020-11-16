@@ -172,9 +172,9 @@ def harmonize(notes, dominant_tonic=1000, brange=(36,54), trange=(52,64), arange
 
 # twinkle = [0,0,7,7,9,9,7,5,5,4,4,2,2,0]
 # row = [0,0,0,2,4,4,2,4,5,7,0,0,0,7,7,7,4,4,4,0,0,0,7,5,4,2,0]
-ode = [4,4,5,7,7,5,4,2,0,0,2,4,4,2,2,4,4,5,7,7,5,4,2,0,0,2,4,2,0,0]
-ode = [guy+60 for guy in ode]
-ode_notes = [(1,guy) for guy in ode]
+# ode = [4,4,5,7,7,5,4,2,0,0,2,4,4,2,2,4,4,5,7,7,5,4,2,0,0,2,4,2,0,0]
+# ode = [guy+60 for guy in ode]
+# ode_notes = [(1,guy) for guy in ode]
 # mayday = [(240,0),(120,66),(120,66),(240,66),(120,64),(120,64),(240,64),(120,61),(120,61),
 #                   (120,61),(120,59),(240,61),(180,58),(60,56),(1200,58),(480,0),
 #                   (240,0),(120,66),(120,66),(240,66),(120,64),(120,64),(240,64),(120,61),(120,61),
@@ -207,9 +207,9 @@ ode_notes = [(1,guy) for guy in ode]
 # #print(find_key(anim))
 #print(harmony(stars, 1000))
 #print(harmony(birth, 1000))
-x=harmonize(ode_notes, 1000)
-print(x[0])
-print(x[1])
-print(x[2])
-print(x[3])
+# x=harmonize(ode_notes, 1000)
+# print(x[0])
+# print(x[1])
+# print(x[2])
+# print(x[3])
 # #print(viterbi(row, states, valid, transition))
