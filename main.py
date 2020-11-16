@@ -210,7 +210,13 @@ class IntroScreen(BaseWidget):
 
     def init_recording(self):
         data = self.recorder.toggle()
-        if data:
+        if not data:
+            if self.live_wave is not None:
+                self.mixer.remove(self.live_wave)
+            for i in self.seq:
+                if i is not None:
+                    i.stop()
+        else:
             wave_gen, filename, duration_midi = data
             #ignore short notes
             for i in range(len(duration_midi)):
