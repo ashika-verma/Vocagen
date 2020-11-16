@@ -131,11 +131,24 @@ class PitchDetector(object):
             self.cur_pitch = 0 #default
             x = self.buffer.read(self.buffer.get_read_available()) #screw fixed amounts, just read the whole thing
             freq = abs(np.fft.rfft(x)) # fft of input signal
-            m = max(freq[6:]) #largest non-tiny value
-            if m>10:
-                loc = np.where(freq == max(freq[6:]))[0][0]
+            m = max(freq[2:]) #largest non-tiny value
+            if m>4:
+                loc = np.where(freq == m)[0][0]
                 #take weighted averages of frequencies near maximum
-                real = (freq[loc-1]*(loc-1)+freq[loc]*loc+freq[loc+1]*(loc+1))/(sum(freq[loc-1:loc+2]))
+                tot = freq[loc-1]*(loc-1)+freq[loc]*loc+freq[loc+1]*(loc+1)
+                if loc < 4:
+                    real = tot/sum(freq[loc-1:loc+2])
+                else:
+                    tot += freq[loc-2]*(loc-2)+freq[loc+2]*(loc+2)
+                    real = tot/sum(freq[loc-2:loc+3])
+                if real > 4 and freq[round(real/2)] > .6*m: #try to correct for octave up jumps
+                    loc = round(real/2)
+                    tot = freq[loc-1]*(loc-1)+freq[loc]*loc+freq[loc+1]*(loc+1)
+                    if loc < 4:
+                        real = tot/sum(freq[loc-1:loc+2])
+                    else:
+                        tot += freq[loc-2]*(loc-2)+freq[loc+2]*(loc+2)
+                        real = tot/sum(freq[loc-2:loc+3])
                 self.cur_pitch = 69 + 12 * math.log2(real*44100/len(x)/440) #convert to midi pitch
             # p, c = self._process_window(x)
             # if c > conf:
@@ -557,5 +570,5 @@ class MainWidget(BaseWidget) :
         if keycode[1] == "s" and self.seq:
             self.play_recording()
 
-
-# run(MainWidget())
+if __name__ == "__main__":
+    run(MainWidget())
