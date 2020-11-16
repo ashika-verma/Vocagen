@@ -47,21 +47,59 @@
     title_font: "data/pixeljosh6"
     title_size: "20sp"
     GridLayout:
-        cols: 2
+        cols: 5
         SimpleLabel:
             text: "high voice"
-        SimpleLabel:
-            text: "high voice"
+        LabelCheckBox:
+            text: "piano"
+            group: "high voice"
+            checkbox_click: root.checkbox_callback
+        LabelCheckBox:
+            checkbox_click: root.checkbox_callback
+            text: "violin"
+            group: "high voice"
+        LabelCheckBox:
+            checkbox_click: root.checkbox_callback
+            text: "guitar"
+            group: "high voice"
+        LabelCheckBox:
+            checkbox_click: root.checkbox_callback
+            text: "flute"
+            group: "high voice"
 
         SimpleLabel:
             text: "mid voice"
+        LabelCheckBox:
+            checkbox_click: root.checkbox_callback
+            text: "piano"
+            group: "mid voice"
+        LabelCheckBox:
+            checkbox_click: root.checkbox_callback
+            text: "viola"
+            group: "mid voice"
+        LabelCheckBox:
+            checkbox_click: root.checkbox_callback
+            text: "guitar"
+            group: "mid voice"
         SimpleLabel:
-            text: "mid voice"
+            text: "     "
 
         SimpleLabel:
             text: "low voice"
+        LabelCheckBox:
+            checkbox_click: root.checkbox_callback
+            text: "piano"
+            group: "low voice"
+        LabelCheckBox:
+            checkbox_click: root.checkbox_callback
+            text: "cello"
+            group: "low voice"
+        LabelCheckBox:
+            checkbox_click: root.checkbox_callback
+            text: "bass"
+            group: "low voice"
         SimpleLabel:
-            text: "low voice"
+            text: "     "
 
 <GenrePopup>:
     size_hint: .7, .7

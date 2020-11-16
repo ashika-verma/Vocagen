@@ -60,8 +60,12 @@ class VolumePopup(Popup):
 
 
 class InstrumentPopup(Popup):
-    def __init__(self, **kwargs):
-        super(InstrumentPopup, self).__init__(**kwargs)
+    def __init__(self, callback):
+        super(InstrumentPopup, self).__init__()
+        self.instrument_callback = callback
+    def checkbox_callback(self, obj, group, label, value):
+        if value:
+            self.instrument_callback(label, group)
 
 
 
@@ -75,7 +79,6 @@ class GenrePopup(Popup):
         self.callback =  callback
     def checkbox_callback(self, obj, group, label, value):
         self.callback(value, label)
-        print(group)
 
 
 
@@ -102,10 +105,10 @@ class IntroScreen(BaseWidget):
     image = "data/bedroom.jpg"
     def __init__(self):
         super(IntroScreen, self).__init__()
-        self.genre_popup = GenrePopup(None)
+        self.genre_popup = GenrePopup(self.genre_callback)
         self.volume_popup = VolumePopup(self.slider_callback)
         self.record_popup = RecordPopup(self.init_recording, self.play_recording)
-        self.instruments_popup = InstrumentPopup()
+        self.instruments_popup = InstrumentPopup(self.instrument_callback)
 
         self.audio = Audio(2, input_func=self.receive_audio,
                            num_input_channels=1)
@@ -121,9 +124,6 @@ class IntroScreen(BaseWidget):
         self.scene.amp.set_callback(self.volume_popup.open)
         self.scene.mic.set_callback(self.record_popup.open)
         self.scene.guitar.set_callback(self.instruments_popup.open)
-
-        self.audio = Audio(2, input_func=self.receive_audio,
-                           num_input_channels=1)
 
         self.cur_pitch = 0
         self.midi_notes = None
@@ -152,15 +152,16 @@ class IntroScreen(BaseWidget):
         # live Generator
         self.live_wave = None
         
-    def slider_callback(self, voice, value):
-        value = int(value)
-        #update values
-        if voice == 'alto':
-            self.indices[2] = value
-        if voice == 'tenor':
-            self.indices[1] = value
-        if voice == 'bass':
-            self.indices[0] = value
+    def genre_callback(self, value, label):
+        pass
+    
+    def instrument_callback(self, value, label):
+        if label == 'high voice':
+            self.indices[2] = ['piano','violin','guitar','flute'].index(value)
+        if label == 'mid voice':
+            self.indices[1] = ['piano','viola','guitar'].index(value)
+        if label == 'low voice':
+            self.indices[0] = ['piano','cello','bass'].index(value)
         if self.live_wave is not None:
             for i in self.seq:
                 i.stop()
@@ -175,20 +176,17 @@ class IntroScreen(BaseWidget):
                                         for i, j in k] for k in duration_midi]
             
             for i in range(3):
-                print(self.instruments[i][self.indices[i]][1])
                 self.seq[i] = NoteSequencer(
                     self.sched, self.synth, i+1, self.instruments[i][self.indices[i]][1], 
                     converted_midi_duration[i+1], True)
             if self.playing:
                 self.play_recording()
+        
+    def slider_callback(self, voice, value):
+        pass
 
     def on_update(self):
         self.audio.on_update()
-
-    # def slider_callback(id, value):
-    #     # TODO 
-    #     # ids are ["melody", "alto", "tenor", "bass"]
-    #     print(id, value)
 
     def receive_audio(self, frames, num_channels):
         assert(num_channels == 1)
