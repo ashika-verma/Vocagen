@@ -73,7 +73,7 @@ def minor_valid(i, notes): #weight of a chord in minor
         return float('inf')
     weights = [9,-9,3,7,-8,3,-8,7,3,-9,0,2]
     return -sum(weights[i] for i in notes)
-def transition(i,j): # "distance" between two consecutive chord (smaller is more favorable)
+def transition(i,j): # "distance" between two consecutive chords (smaller is more favorable)
     if i == j:
         return -1
     if (i[1] - i[0])%12 == 4 and (i[0] - j[0])%12 == 7:
@@ -92,70 +92,89 @@ def harmony(pitches, dominant_tonic): #dominant tonic is how much we favor domin
     return [[(do + boi)%12 for boi in guy] for guy in harm] #shift back to correct key
 
 
-def harmonize(notes, dominant_tonic=1000):
+def harmonize(notes, dominant_tonic=1000, brange=(36,54), trange=(52,64), arange=(56,68)):
     pitches = []
     for guy in notes:
         if guy[1] != 0:
             pitches.append(guy[1])
     stuff = harmony(pitches, dominant_tonic)
-    #below is voicing stuff (needs work)
-    bass = [pitches[0]-12-(pitches[0]%12)+stuff[0][0] if stuff[0][0]<=pitches[0]%12 else pitches[0]-24-(pitches[0]%12)+stuff[0][0]]
-    for i in range(1, len(pitches)):
-        change = (stuff[i][0]-stuff[i-1][0])%12
-        if bass[-1]+change <= pitches[i]-12:
-            bass.append(bass[-1]+change)
-        else:
-            bass.append(bass[-1]+change-12)
-    x = pitches[0] % 12
-    used = []
-    for guy in stuff[0][:3]:
-        if guy != x:
-            use = pitches[0]-x+guy
-            if use > pitches[0]:
-                use -= 12
-            used.append(use)
-    used.sort()
-    tenor = [used[0]]
-    alto = [used[1]]
-    for i in range(1, len(pitches)):
-        tenchange = [guy - tenor[-1]%12 for guy in stuff[i]]
-        altchange = [guy - alto[-1]%12 for guy in stuff[i]]
-        tenchange = sorted([(guy+6)%12-6 for guy in tenchange], key=abs)
-        altchange = sorted([(guy+6)%12-6 for guy in altchange], key=abs)
-        propten = tenor[-1]+tenchange[0]
-        propalt = alto[-1]+altchange[0]
-        if propten != propalt:
-            tenor.append(propten)
-            alto.append(propalt)
-        else:
-            if tenchange[1] <= altchange[1]:
-                tenor.append(tenor[-1]+tenchange[1])
-                alto.append(propalt)
-            else:
-                tenor.append(propten)
-                alto.append(alto[-1]+altchange[1])
+    voices = [((brange[0]+brange[1])/2, (trange[0]+trange[1])/2, (arange[0]+arange[1])/2)]
+    ind=-1
+    for chord in stuff:
+        ind+=1
+        allowed = []
+        for i in range(brange[0], brange[1]+1):
+            if i%12 == chord[0]:
+                for j in range(trange[0], trange[1]+1):
+                    if j%12 in chord:
+                        for k in range(arange[0], arange[1]+1):
+                            if k%12 in chord:
+                                if i != j and j != k and i != k and chord[1] in [j%12, k%12, pitches[ind]%12]:
+                                    dist = abs(i-voices[-1][0])**2 + abs(j-voices[-1][1])**2 + abs(k-voices[-1][2])**2
+                                    allowed.append((dist, i, j, k))
+        allowed.sort()
+        voices.append(allowed[0][1:])
+                                    
+        
+    # #old voicing stuff  
+    # bass = [pitches[0]-12-(pitches[0]%12)+stuff[0][0] if stuff[0][0]<=pitches[0]%12 else pitches[0]-24-(pitches[0]%12)+stuff[0][0]]
+    # for i in range(1, len(pitches)):
+    #     change = (stuff[i][0]-stuff[i-1][0])%12
+    #     if bass[-1]+change <= pitches[i]-12:
+    #         bass.append(bass[-1]+change)
+    #     else:
+    #         bass.append(bass[-1]+change-12)
+    # x = pitches[0] % 12
+    # used = []
+    # for guy in stuff[0][:3]:
+    #     if guy != x:
+    #         use = pitches[0]-x+guy
+    #         if use > pitches[0]:
+    #             use -= 12
+    #         used.append(use)
+    # used.sort()
+    # tenor = [used[0]]
+    # alto = [used[1]]
+    # for i in range(1, len(pitches)):
+    #     tenchange = [guy - tenor[-1]%12 for guy in stuff[i]]
+    #     altchange = [guy - alto[-1]%12 for guy in stuff[i]]
+    #     tenchange = sorted([(guy+6)%12-6 for guy in tenchange], key=abs)
+    #     altchange = sorted([(guy+6)%12-6 for guy in altchange], key=abs)
+    #     propten = tenor[-1]+tenchange[0]
+    #     propalt = alto[-1]+altchange[0]
+    #     if propten != propalt:
+    #         tenor.append(propten)
+    #         alto.append(propalt)
+    #     else:
+    #         if tenchange[1] <= altchange[1]:
+    #             tenor.append(tenor[-1]+tenchange[1])
+    #             alto.append(propalt)
+    #         else:
+    #             tenor.append(propten)
+    #             alto.append(alto[-1]+altchange[1])
     bass_notes = []
     alt_notes = []
     ten_notes = []
-    ind = 0
+    ind = 1
     for i in range(len(notes)):
         if notes[i][1] != 0:
-            bass_notes.append((notes[i][0], bass[ind]))
-            alt_notes.append((notes[i][0], alto[ind]))
-            ten_notes.append((notes[i][0], tenor[ind]))
+            bass_notes.append((notes[i][0], voices[ind][0]))
+            alt_notes.append((notes[i][0], voices[ind][2]))
+            ten_notes.append((notes[i][0], voices[ind][1]))
             ind+=1
         else:
             bass_notes.append((notes[i][0],0))
             alt_notes.append((notes[i][0], 0))
             ten_notes.append((notes[i][0], 0))
-    return [notes,bass_notes,alt_notes,ten_notes]
+    return [notes,bass_notes,ten_notes,alt_notes]
     
     
 
 # twinkle = [0,0,7,7,9,9,7,5,5,4,4,2,2,0]
 # row = [0,0,0,2,4,4,2,4,5,7,0,0,0,7,7,7,4,4,4,0,0,0,7,5,4,2,0]
-#ode = [4,4,5,7,7,5,4,2,0,0,2,4,4,2,2,4,4,5,7,7,5,4,2,0,0,2,4,2,0,0]
-
+ode = [4,4,5,7,7,5,4,2,0,0,2,4,4,2,2,4,4,5,7,7,5,4,2,0,0,2,4,2,0,0]
+ode = [guy+60 for guy in ode]
+ode_notes = [(1,guy) for guy in ode]
 # mayday = [(240,0),(120,66),(120,66),(240,66),(120,64),(120,64),(240,64),(120,61),(120,61),
 #                   (120,61),(120,59),(240,61),(180,58),(60,56),(1200,58),(480,0),
 #                   (240,0),(120,66),(120,66),(240,66),(120,64),(120,64),(240,64),(120,61),(120,61),
@@ -169,7 +188,7 @@ def harmonize(notes, dominant_tonic=1000):
 # # print(find_key(twinkle))
 # # print(find_key(row))
 #print(find_key(ode))
-stars = [65,62,58,62,65,70,74,72,70,62,64,65,65,65,74,72,70,69,67,69,70,70,65,62,58]#,
+#stars = [65,62,58,62,65,70,74,72,70,62,64,65,65,65,74,72,70,69,67,69,70,70,65,62,58]#,
           # 65,62,58,62,65,70,74,72,70,62,64,65,65,65,74,72,70,69,67,69,70,70,65,62,58,
           # 74,74,74,75,77,77,75,74,72,74,75,75,75,74,72,70,69,67,69,70,62,64,65,
           # 65,70,70,70,69,67,67,67,72,74,75,74,72,70,70,69,
@@ -186,7 +205,11 @@ stars = [65,62,58,62,65,70,74,72,70,62,64,65,65,65,74,72,70,69,67,69,70,70,65,62
 # anim = [67,68,67,66,67,60,63,62,63,62,60,62,59,55,60,61,60,59,60,64,67,60,70,68,67,65,
 #         65,67,65,64,65,68,67,62,65,63,62,60,59,60,63,67,72,74,75,74,72,72,70,70,68,68,66,67,67,68,67]
 # #print(find_key(anim))
-print(harmony(stars, 1000))
+#print(harmony(stars, 1000))
 #print(harmony(birth, 1000))
-#print(harmonize(birth_notes, 1000)[3])
+x=harmonize(ode_notes, 1000)
+print(x[0])
+print(x[1])
+print(x[2])
+print(x[3])
 # #print(viterbi(row, states, valid, transition))
