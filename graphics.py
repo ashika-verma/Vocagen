@@ -84,7 +84,6 @@ class Scene(BaseWidget):
         # File cabinet
         self.storage = InteractiveImage()
         self.storage.source = "./data/scene/storage.png"
-        self.storage.size = (800, 600)
         self.storage.set_callback(lambda: print("storage"))
         self.add_widget(self.storage)
 
