@@ -1,4 +1,4 @@
-from kivy.uix.image import Image
+
 import sys
 import os
 sys.path.insert(0, os.path.abspath('..'))
@@ -8,6 +8,7 @@ from kivy.uix.button import Button
 from kivy.uix.floatlayout import FloatLayout
 from kivy.graphics import Color, Ellipse
 from kivy.clock import Clock as kivyClock
+from kivy.uix.image import Image
 from kivy.core.window import Window
 from kivy.uix.popup import Popup
 from kivy.app import App
@@ -49,14 +50,14 @@ class StartPopup(Popup):
 
 
 class VolumePopup(Popup):
-    def __init__(self, **kwargs):
-        super(VolumePopup, self).__init__(**kwargs)
+    def __init__(self, callback):
+        super(VolumePopup, self).__init__()
+        self.slider_callback = callback  # takes in (slider_id, value)
 
 
 class InstrumentPopup(Popup):
     def __init__(self, **kwargs):
         super(InstrumentPopup, self).__init__(**kwargs)
-        self.dropdown = DropDown()
 
 
 
@@ -160,6 +161,10 @@ class IntroScreen(BaseWidget):
     def on_update(self):
         self.audio.on_update()
 
+    def slider_callback(id, value):
+        # TODO 
+        # ids are ["melody", "alto", "tenor", "bass"]
+        print(id, value)
 
     def receive_audio(self, frames, num_channels):
         assert(num_channels == 1)

@@ -116,6 +116,7 @@
             max: 100
             step: 1
             orientation: 'horizontal'
+            on_value: root.slider_callback("melody", melody.value)
         SimpleLabel:
             text: str(melody.value)
 
@@ -127,6 +128,7 @@
             min: 0
             max: 100
             step: 1
+            on_value: root.slider_callback("alto", alto.value)
             orientation: 'horizontal'
         SimpleLabel:
             text: str(alto.value)
@@ -138,6 +140,7 @@
             min: 0
             max: 100
             step: 1
+            on_value: root.slider_callback("tenor", tenor.value)
             orientation: 'horizontal'
         SimpleLabel:
             text: str(tenor.value)
@@ -148,6 +151,7 @@
             id: bass
             min: 0
             max: 100
+            on_value: root.slider_callback("bass", bass.value)
             step: 1
             orientation: 'horizontal'
         SimpleLabel:
