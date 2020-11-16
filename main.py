@@ -23,6 +23,8 @@ from kivy.graphics import Color, Ellipse, Line, Rectangle
 from kivy.uix.boxlayout import BoxLayout 
 from kivy.uix.behaviors import ButtonBehavior
 from ashika_play_area.input_demo import *
+
+from graphics import Scene
   
 ## not necessary while using .kv file 
 from kivy.uix.checkbox import CheckBox 
@@ -90,13 +92,19 @@ class RecordPopup(Popup):
         
 
 class IntroScreen(BaseWidget):
-    image = "data/bedroom.jpg"
     def __init__(self):
         super(IntroScreen, self).__init__()
         self.genre_popup = GenrePopup()
         self.volume_popup = VolumePopup(self.slider_callback)
         self.record_popup = RecordPopup(self.init_recording, self.play_recording)
         self.instruments_popup = InstrumentPopup()
+
+        self.scene = Scene()
+        self.add_widget(self.scene)
+        self.scene.radio.set_callback(self.genre_popup.open)
+        self.scene.amp.set_callback(self.volume_popup.open)
+        self.scene.mic.set_callback(self.record_popup.open)
+        self.scene.guitar.set_callback(self.instruments_popup.open)
 
         self.audio = Audio(2, input_func=self.receive_audio,
                            num_input_channels=1)
