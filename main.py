@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from kivy.uix.image import Image
 import sys
 import os
