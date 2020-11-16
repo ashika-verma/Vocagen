@@ -122,9 +122,6 @@ class IntroScreen(BaseWidget):
         self.scene.mic.set_callback(self.record_popup.open)
         self.scene.guitar.set_callback(self.instruments_popup.open)
 
-        self.audio = Audio(2, input_func=self.receive_audio,
-                           num_input_channels=1)
-
         self.cur_pitch = 0
         self.midi_notes = None
         
