@@ -86,80 +86,57 @@ class FIFOBuffer(object):
         self.write_ptr = remaining
         return out
 
-
-# keeps track of most recent N samples. 
-class BufferFilter(object):
-    def __init__(self, size):
-        super(BufferFilter, self).__init__()
-        self.buf = np.zeros(size)
-        self.idx = 0
-
-    def insert(self, value):
-        self.buf[self.idx] = value
-        self.idx = (self.idx + 1) % len(self.buf)
-
-    # max filter of recent values:
-    def max(self):
-        return np.max(self.buf)
-
-
 class PitchDetector(object):
     def __init__(self):
         super(PitchDetector, self).__init__()
         # number of frames to present to the pitch detector each time
-        self.buffer_size = 1024
+        self.buffer_size = 4096
+        self.hop_size = 2048
+
+        self.fifo = FIFOBuffer(8*self.buffer_size, np.float32)
 
         # set up the pitch detector
-        self.pitch_o = aubio.pitch("yin", 2048, self.buffer_size, Audio.sample_rate)
-        self.pitch_o.set_tolerance(.5)
-        self.pitch_o.set_unit("midi")
+        self.pitch_detector = aubio.pitch("yin", self.buffer_size,
+                                          self.hop_size, Audio.sample_rate)
+        #self.pitch_detector.set_tolerance(.5)
+        self.pitch_detector.set_unit("midi")
 
-        # buffer allows for always delivering a fixed buffer size to the pitch detector
-        self.buffer = FIFOBuffer(self.buffer_size * 8, buf_type=np.float32)
-
-        self.cur_pitch = 0
+        n = 2
+        self.i = 0
+        self.pitches = [0 for i in range(n)]
 
     # Add incoming data to pitch detector. Return estimated pitch as floating point 
     # midi value.
     # Returns 0 if a strong pitch is not found.
     def write(self, signal):
-        self.buffer.write(signal) # insert data
 
-        # read data in the fixed chunk sizes, as many as possible.
-        # keep only the highest confidence estimate of the pitches found.
-        while self.buffer.get_read_available() > self.buffer_size:
-            self.cur_pitch = 0 #default
-            x = self.buffer.read(self.buffer.get_read_available()) #screw fixed amounts, just read the whole thing
-            freq = abs(np.fft.rfft(x)) # fft of input signal
-            m = max(freq[2:]) #largest non-tiny value
-            if m>4:
-                loc = np.where(freq == m)[0][0]
-                #take weighted averages of frequencies near maximum
-                tot = freq[loc-1]*(loc-1)+freq[loc]*loc+freq[loc+1]*(loc+1)
-                if loc < 4:
-                    real = tot/sum(freq[loc-1:loc+2])
-                else:
-                    tot += freq[loc-2]*(loc-2)+freq[loc+2]*(loc+2)
-                    real = tot/sum(freq[loc-2:loc+3])
-                if real > 4 and freq[round(real/2)] > .6*m: #try to correct for octave up jumps
-                    loc = round(real/2)
-                    tot = freq[loc-1]*(loc-1)+freq[loc]*loc+freq[loc+1]*(loc+1)
-                    if loc < 4:
-                        real = tot/sum(freq[loc-1:loc+2])
-                    else:
-                        tot += freq[loc-2]*(loc-2)+freq[loc+2]*(loc+2)
-                        real = tot/sum(freq[loc-2:loc+3])
-                self.cur_pitch = 69 + 12 * math.log2(real*44100/len(x)/440) #convert to midi pitch
-            # p, c = self._process_window(x)
-            # if c > conf:
-            #     self.cur_pitch = p
-            #     conf = c
-        return self.cur_pitch
+        if self.fifo.get_write_available() >= len(signal):
+            self.fifo.write(signal)
+
+        if self.fifo.get_read_available() >= self.hop_size:
+
+            samples = self.fifo.read(self.hop_size)
+
+            pitch = self.pitch_detector(samples)[0]
+            confidence = self.pitch_detector.get_confidence()
+
+            #if pitch == 0:
+                #print("( 0.0 %-3.2f)" % (confidence))
+                
+            #else:
+                #print("(%-4.1f %-3.2f)" % (pitch, confidence))
+
+            if confidence < 0.95:
+                pitch = 0
+
+            self.pitches[self.i] = pitch
+            self.i = (self.i + 1) % len(self.pitches)
+
+        return sum(self.pitches)/len(self.pitches)
+
 
     # helper function for finding the pitch of the fixed buffer signal.
     def _process_window(self, signal):
-        pitch = self.pitch_o(signal)[0]
-        conf = self.pitch_o.get_confidence()
         return pitch, conf
 
 
