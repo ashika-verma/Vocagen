@@ -66,7 +66,13 @@ class CustomDropDown(DropDown):
 
 
 class GenrePopup(Popup):
-    pass
+    def __init__(self, callback):
+        super(GenrePopup, self).__init__()
+        self.callback =  callback
+    def checkbox_callback(self, obj, group, label, value):
+        self.callback(value, label)
+        print(group)
+
 
 
 class RecordPopup(Popup):
@@ -92,8 +98,8 @@ class IntroScreen(BaseWidget):
     image = "data/bedroom.jpg"
     def __init__(self):
         super(IntroScreen, self).__init__()
-        self.genre_popup = GenrePopup()
-        self.volume_popup = VolumePopup()
+        self.genre_popup = GenrePopup(self.slider_callback)
+        self.volume_popup = VolumePopup(self.slider_callback)
         self.record_popup = RecordPopup(self.init_recording, self.play_recording)
         self.instruments_popup = InstrumentPopup()
 
@@ -126,7 +132,7 @@ class IntroScreen(BaseWidget):
     def on_update(self):
         self.audio.on_update()
 
-    def slider_callback(id, value):
+    def slider_callback(self, id, value):
         # TODO 
         # ids are ["melody", "alto", "tenor", "bass"]
         print(id, value)

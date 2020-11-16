@@ -558,4 +558,4 @@ class MainWidget(BaseWidget) :
             self.play_recording()
 
 
-run(MainWidget())
+# run(MainWidget())
