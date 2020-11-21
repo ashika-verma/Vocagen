@@ -114,44 +114,6 @@ def harmonize(notes, dominant_tonic=1000, brange=(36,54), trange=(52,64), arange
                                     allowed.append((dist, i, j, k))
         allowed.sort()
         voices.append(allowed[0][1:])
-                                    
-        
-    # #old voicing stuff  
-    # bass = [pitches[0]-12-(pitches[0]%12)+stuff[0][0] if stuff[0][0]<=pitches[0]%12 else pitches[0]-24-(pitches[0]%12)+stuff[0][0]]
-    # for i in range(1, len(pitches)):
-    #     change = (stuff[i][0]-stuff[i-1][0])%12
-    #     if bass[-1]+change <= pitches[i]-12:
-    #         bass.append(bass[-1]+change)
-    #     else:
-    #         bass.append(bass[-1]+change-12)
-    # x = pitches[0] % 12
-    # used = []
-    # for guy in stuff[0][:3]:
-    #     if guy != x:
-    #         use = pitches[0]-x+guy
-    #         if use > pitches[0]:
-    #             use -= 12
-    #         used.append(use)
-    # used.sort()
-    # tenor = [used[0]]
-    # alto = [used[1]]
-    # for i in range(1, len(pitches)):
-    #     tenchange = [guy - tenor[-1]%12 for guy in stuff[i]]
-    #     altchange = [guy - alto[-1]%12 for guy in stuff[i]]
-    #     tenchange = sorted([(guy+6)%12-6 for guy in tenchange], key=abs)
-    #     altchange = sorted([(guy+6)%12-6 for guy in altchange], key=abs)
-    #     propten = tenor[-1]+tenchange[0]
-    #     propalt = alto[-1]+altchange[0]
-    #     if propten != propalt:
-    #         tenor.append(propten)
-    #         alto.append(propalt)
-    #     else:
-    #         if tenchange[1] <= altchange[1]:
-    #             tenor.append(tenor[-1]+tenchange[1])
-    #             alto.append(propalt)
-    #         else:
-    #             tenor.append(propten)
-    #             alto.append(alto[-1]+altchange[1])
     bass_notes = []
     alt_notes = []
     ten_notes = []

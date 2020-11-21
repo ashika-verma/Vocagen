@@ -212,34 +212,48 @@ class IntroScreen(BaseWidget):
         data = self.recorder.toggle()
         if not data:
             if self.live_wave is not None:
-                self.mixer.remove(self.live_wave)
+                try:
+                    self.mixer.remove(self.live_wave)
+                except:
+                    pass
             for i in self.seq:
                 if i is not None:
                     i.stop()
         else:
             wave_gen, filename, duration_midi = data
             #ignore short notes
-            for i in range(len(duration_midi)):
-                if duration_midi[i][0] < 0.12:
-                    duration_midi[i] = (duration_midi[i][0], 0)
+            i=0
+            while i<len(duration_midi):
+                if duration_midi[i][0] < 0.1:
+                    duration_midi[i-1] = (duration_midi[i][0]+duration_midi[i-1][0], duration_midi[i-1][1])
+                    duration_midi.pop(i)
+                else:
+                    i+=1
             self.midi_notes = duration_midi
             #find harmonies
-            duration_midi = harmony.harmonize(duration_midi, brange = self.bass[self.indices[0]][0],
-                                              trange = self.tenor[self.indices[1]][0],
-                                              arange = self.alto[self.indices[2]][0])
             self.live_wave = wave_gen
-            print([[i[1] for i in j] for j in duration_midi])
-
-            # cheat to use SimpleTempoMap
-            tempo = 120
-            multiplier = 1/60*tempo*480
-            converted_midi_duration = [[(i*multiplier, j)
-                                        for i, j in k] for k in duration_midi]
-            #make NoteSequencers
-            for i in range(3):
-                self.seq[i] = NoteSequencer(
-                    self.sched, self.synth, 1, self.instruments[i][self.indices[i]][1], 
-                    converted_midi_duration[i+1], True)
+            good = False
+            for i in duration_midi:
+                if i[1] > 0:
+                    good = True
+                    break
+                
+            if good:
+                duration_midi = harmony.harmonize(duration_midi, brange = self.bass[self.indices[0]][0],
+                                                  trange = self.tenor[self.indices[1]][0],
+                                                  arange = self.alto[self.indices[2]][0])
+                print([[i[1] for i in j] for j in duration_midi])
+    
+                # cheat to use SimpleTempoMap
+                tempo = 120
+                multiplier = 1/60*tempo*480
+                converted_midi_duration = [[(i*multiplier, j)
+                                            for i, j in k] for k in duration_midi]
+                #make NoteSequencers
+                for i in range(3):
+                    self.seq[i] = NoteSequencer(
+                        self.sched, self.synth, 1, self.instruments[i][self.indices[i]][1], 
+                        converted_midi_duration[i+1], True)
 
     def play_recording(self):
         self.playing = True

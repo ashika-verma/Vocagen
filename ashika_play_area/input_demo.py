@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 #####################################################################
 #
 # input_demo.py
@@ -9,20 +7,6 @@
 # Released under the MIT License (http://opensource.org/licenses/MIT)
 #
 #####################################################################
-
-# contains example code for some simple input (microphone) processing.
-# Requires aubio (pip install aubio).
-
-
-# The top line (red) shows the current and recent history of the detected pitch.
-
-# The bottom line (green) shows the signal energy (amplitude), and also has a simple onset detector
-# with classification. A high-frequency onset will show an expanding circle. A low-frequency onset
-# will show a shrinking circle.
-
-# Adjust the onset threshold with the up/down arrow keys. This changes the sensitivity of the onset
-# detector.
-
 
 import sys, os
 sys.path.insert(0, os.path.abspath('..'))
@@ -44,7 +28,6 @@ from kivy.graphics import Color, Ellipse, Rectangle, Line
 from kivy.graphics import PushMatrix, PopMatrix, Translate, Scale, Rotate
 from kivy.clock import Clock as kivyClock
 from random import randint
-import aubio
 
 import harmony
 from graphics import InteractiveImage
@@ -72,7 +55,6 @@ class FIFOBuffer(object):
     # write 'signal' into buffer
     def write(self, signal):
         amt = len(signal)
-        L = len(self.buffer)
         # assert(self.write_ptr + amt <= L)
         self.buffer[self.write_ptr:self.write_ptr+amt] = signal
         self.write_ptr += amt
@@ -86,36 +68,10 @@ class FIFOBuffer(object):
         self.write_ptr = remaining
         return out
 
-
-# keeps track of most recent N samples. 
-class BufferFilter(object):
-    def __init__(self, size):
-        super(BufferFilter, self).__init__()
-        self.buf = np.zeros(size)
-        self.idx = 0
-
-    def insert(self, value):
-        self.buf[self.idx] = value
-        self.idx = (self.idx + 1) % len(self.buf)
-
-    # max filter of recent values:
-    def max(self):
-        return np.max(self.buf)
-
-
 class PitchDetector(object):
     def __init__(self):
         super(PitchDetector, self).__init__()
-        # number of frames to present to the pitch detector each time
-        self.buffer_size = 1024
-
-        # set up the pitch detector
-        self.pitch_o = aubio.pitch("yin", 2048, self.buffer_size, Audio.sample_rate)
-        self.pitch_o.set_tolerance(.5)
-        self.pitch_o.set_unit("midi")
-
-        # buffer allows for always delivering a fixed buffer size to the pitch detector
-        self.buffer = FIFOBuffer(self.buffer_size * 8, buf_type=np.float32)
+        self.buffer = FIFOBuffer(8192, buf_type=np.float32)
 
         self.cur_pitch = 0
 
@@ -127,102 +83,19 @@ class PitchDetector(object):
 
         # read data in the fixed chunk sizes, as many as possible.
         # keep only the highest confidence estimate of the pitches found.
-        while self.buffer.get_read_available() > self.buffer_size:
+        while self.buffer.get_read_available() > 2047:
             self.cur_pitch = 0 #default
             x = self.buffer.read(self.buffer.get_read_available()) #screw fixed amounts, just read the whole thing
-            freq = abs(np.fft.rfft(x)) # fft of input signal
-            m = max(freq[2:]) #largest non-tiny value
+            freq = abs(np.fft.rfft(x, 32*len(x))) # fft of input signal
+            m = max(freq[80:1536]) #range of reasonable values
             if m>4:
                 loc = np.where(freq == m)[0][0]
-                #take weighted averages of frequencies near maximum
-                tot = freq[loc-1]*(loc-1)+freq[loc]*loc+freq[loc+1]*(loc+1)
-                if loc < 4:
-                    real = tot/sum(freq[loc-1:loc+2])
-                else:
-                    tot += freq[loc-2]*(loc-2)+freq[loc+2]*(loc+2)
-                    real = tot/sum(freq[loc-2:loc+3])
-                if real > 4 and freq[round(real/2)] > .6*m: #try to correct for octave up jumps
-                    loc = round(real/2)
-                    tot = freq[loc-1]*(loc-1)+freq[loc]*loc+freq[loc+1]*(loc+1)
-                    if loc < 4:
-                        real = tot/sum(freq[loc-1:loc+2])
-                    else:
-                        tot += freq[loc-2]*(loc-2)+freq[loc+2]*(loc+2)
-                        real = tot/sum(freq[loc-2:loc+3])
+                a = max(freq[int(loc*.45):int(loc*.55)])
+                if a > .35*m:
+                    loc = np.where(freq == a)[0][0]
+                real = loc/32
                 self.cur_pitch = 69 + 12 * math.log2(real*44100/len(x)/440) #convert to midi pitch
-            # p, c = self._process_window(x)
-            # if c > conf:
-            #     self.cur_pitch = p
-            #     conf = c
         return self.cur_pitch
-
-    # helper function for finding the pitch of the fixed buffer signal.
-    def _process_window(self, signal):
-        pitch = self.pitch_o(signal)[0]
-        conf = self.pitch_o.get_confidence()
-        return pitch, conf
-
-
-# looks at incoming audio data, detects onsets, and then a little later, classifies the onset as 
-# "kick" or "snare"
-# calls callback function with message argument that is one of "onset", "kick", "snare"
-class OnsetDectior(object):
-    def __init__(self, callback):
-        super(OnsetDectior, self).__init__()
-        self.callback = callback
-
-        self.last_rms = 0
-        self.buffer = FIFOBuffer(4096*2)
-        self.win_size = 512 # window length for analysis
-        self.min_len = 0.1  # time (in seconds) between onset detection and classification of onset
-
-        self.cur_onset_length = 0 # counts in seconds
-        self.zc = 0               # zero-cross count
-
-        self.active = False # is an onset happening now
-
-        self.onset_thresh = 0.01
-        self.deltas_buffer = BufferFilter(100)
-
-    def write(self, signal):
-        # use FIFO Buffer to create same-sized windows for processing
-        self.buffer.write(signal)
-        while self.buffer.get_read_available() >= self.win_size:
-            data = self.buffer.read(self.win_size)
-            self._process_window(data)
-
-    def get_max_delta(self):
-        return self.deltas_buffer.max()
-
-    # process a single window of audio, of length self.win_size
-    def _process_window(self, signal):
-        # only look at the difference between current RMS and last RMS
-        rms = np.sqrt(np.mean(signal ** 2))
-        delta = rms - self.last_rms
-        self.last_rms = rms
-
-        self.deltas_buffer.insert(delta)
-
-
-        # if delta exceeds threshold and not active:
-        if not self.active and delta > self.onset_thresh:
-            self.callback('onset')
-            self.active = True
-            self.cur_onset_length = 0  # begin timing onset length
-            self.zc = 0                # begin counting zero-crossings
-
-        self.cur_onset_length += len(signal) / float(Audio.sample_rate)
-
-        # count and accumulate zero crossings:
-        zc = np.count_nonzero(signal[1:] * signal[:-1] < 0)
-        self.zc += zc
-
-        # it's classification time!
-        # classify based on a threshold value of the accumulated zero-crossings.
-        if self.active and self.cur_onset_length > self.min_len:
-            self.active = False
-            self.callback(('kick', 'snare')[self.zc > 200])
-
 
 # graphical display of a meter
 class MeterDisplay(InstructionGroup):
@@ -253,43 +126,6 @@ class MeterDisplay(InstructionGroup):
     def set(self, level):
         h = np.interp(level, self.range, (0, self.max_height))
         self.rect.size = (50, h)
-
-
-# graphical display of onsets as a growing (snare) or shrinking (kick) circle
-class OnsetDisplay(InstructionGroup):
-    def __init__(self, pos):
-        super(OnsetDisplay, self).__init__()
-
-        self.anim = None
-        self.start_sz = 100
-        self.time = 0
-
-        self.color = Color(1,1,1,1)
-        self.circle = CEllipse(cpos=(0,0), csize=(self.start_sz, self.start_sz))
-
-        self.add(PushMatrix())
-        self.add(Translate(*pos))
-        self.add(self.color)        
-        self.add(self.circle)
-        self.add(PopMatrix())
-
-    def set_type(self, t):
-        if t == 'kick':
-            self.anim = KFAnim((0, 1,1,1,1, self.start_sz), (0.5, 1,0,0,1, 0))
-        else:
-            self.anim = KFAnim((0, 1,1,1,1, self.start_sz), (0.5, 1,1,0,0, self.start_sz*2))
-
-    def on_update(self, dt):
-        if self.anim == None:
-            return True
-
-        self.time += dt
-        r,g,b,a,sz = self.anim.eval(self.time)
-        self.color.rgba = r,g,b,a
-        self.circle.csize = sz, sz
-
-        return self.anim.is_active(self.time)
-
 
 # continuous plotting and scrolling line
 class GraphDisplay(InstructionGroup):
@@ -424,7 +260,6 @@ class MainWidget(BaseWidget) :
                            num_input_channels=1)
         self.mixer = Mixer()
         self.audio.set_generator(self.mixer)
-        self.onset_detector = OnsetDectior(self.on_onset)
         self.pitch = PitchDetector()
         self.recorder = VoiceAudioWriter('data')
 
@@ -521,16 +356,6 @@ class MainWidget(BaseWidget) :
 
         # onset detection and classification
         self.onset_detector.write(frames)
-        
-
-    def on_onset(self, msg):
-        if msg == 'onset':
-            self.onset_disp = OnsetDisplay((400 + self.onset_x, 100))
-            self.onset_x = (self.onset_x + 100) % 400
-            self.anim_group.add(self.onset_disp)
-        elif self.onset_disp:
-            self.onset_disp.set_type(msg)
-            self.onset_disp = None
 
     def init_recording(self):
         data = self.recorder.toggle()
