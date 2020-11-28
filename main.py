@@ -13,6 +13,8 @@ from kivy.uix.image import Image
 from kivy.core.window import Window
 from kivy.uix.popup import Popup
 from kivy.app import App
+from kivy.uix.gridlayout import GridLayout 
+from kivy.uix.button import Button 
 from kivy.uix.dropdown  import DropDown 
 
 from common.screen import ScreenManager, Screen
@@ -23,6 +25,7 @@ from common.clock import Clock, SimpleTempoMap, AudioScheduler, kTicksPerQuarter
 from kivy.graphics.instructions import InstructionGroup
 from kivy.graphics import Color, Ellipse, Line, Rectangle
 from kivy.uix.boxlayout import BoxLayout 
+from kivy.uix.label import Label
 from kivy.uix.behaviors import ButtonBehavior
 from ashika_play_area.input_demo import *
 
@@ -61,17 +64,79 @@ class VolumePopup(Popup):
         self.slider_callback = callback  # takes in (slider_id, value)
 
 
+
 class InstrumentPopup(Popup):
     def __init__(self, callback):
         super(InstrumentPopup, self).__init__()
         self.instrument_callback = callback
-    def checkbox_callback(self, obj, group, label, value):
-        if value:
+        self.checkbox_labels = {
+            "high voice": ["piano", "violin", "guitar", "flute"],
+            "mid voice": ["piano", "viola", "guitar"],
+            "low voice": ["piano", "cello", "bass"]
+        }
+        
+        self.checkboxes = {
+            "high voice": [],
+            "mid voice": [],
+            "low voice": []
+        }
+
+        # creating the checkbox layout
+        max_items = 4
+        self.layout = GridLayout(cols = (max_items+1))
+        for i in self.checkbox_labels:
+            self.layout.add_widget(SimpleLabel(text=i))
+            checkbox_list = self.checkbox_labels[i]
+
+            # fills in checkboxes and labels
+            for j in range(len(checkbox_list)):
+                box_layout = BoxLayout()
+                item = checkbox_list[j]
+                current_checkbox = CheckBox(group = i)
+                current_checkbox.bind(on_press=self.on_checkbox_active)
+                self.checkboxes[i].append(current_checkbox)
+                box_layout.add_widget(current_checkbox)
+                box_layout.add_widget(SimpleLabel(text=item))
+                self.layout.add_widget(box_layout)
+
+            # creates fillers
+            for j in range(max_items-len(checkbox_list)):
+                self.layout.add_widget(BoxLayout())
+        self.content = self.layout
+
+
+        # sets the current choices as active
+        current_active ={
+            "high voice": 0,
+            "mid voice": 1,
+            "low voice": 2
+        }
+        self.set_checkboxes(current_active)
+    
+    def set_checkboxes(self, option_dict):
+        '''
+        Takes in a dictionary of group: index
+        looks like self.current_active
+        sets new items as active
+        '''
+        for group in option_dict:
+            new_index = option_dict[group]
+            group_checkboxes = self.checkboxes[group]
+            group_checkboxes[new_index]._do_press()
+
+    def on_checkbox_active(self, checkbox_instance):
+        if checkbox_instance.active:
+            group = checkbox_instance.group
+            index = self.checkboxes[group].index(checkbox_instance)
+            label = self.checkbox_labels[group][index]
+            print(group, label)
             self.instrument_callback(label, group)
+        else:
+            checkbox_instance._do_press()
+            
 
 
-
-class CustomDropDown(DropDown):
+class SimpleLabel(Label):
     pass
 
 

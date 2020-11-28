@@ -1,4 +1,4 @@
-<SimpleLabel@Label>: 
+<SimpleLabel>: 
     color: 1, 1, 1, 1
     font_name: 'data/pixeljosh6'
     font_size: '15sp'
@@ -21,22 +21,6 @@
         on_press: cb._do_press()
         text: root.text
 
-<CustomDropDown>: 
-    Button: 
-        text: 'College Name'
-        size_hint_y: None
-        height: 44
-        on_release: root.select('College is') 
-    Label: 
-        text: 'Not in college'
-        size_hint_y: None
-        height: 44
-    Button: 
-        text: 'KccItm'
-        size_hint_y: None
-        height: 44
-        on_release: root.select('Kcc') 
-
 <InstrumentPopup>:
     size_hint: .7, .7
     auto_dismiss: True
@@ -46,60 +30,75 @@
     title_align: "center"
     title_font: "data/pixeljosh6"
     title_size: "20sp"
-    GridLayout:
-        cols: 5
-        SimpleLabel:
-            text: "high voice"
-        LabelCheckBox:
-            text: "piano"
-            group: "high voice"
-            checkbox_click: root.checkbox_callback
-        LabelCheckBox:
-            checkbox_click: root.checkbox_callback
-            text: "violin"
-            group: "high voice"
-        LabelCheckBox:
-            checkbox_click: root.checkbox_callback
-            text: "guitar"
-            group: "high voice"
-        LabelCheckBox:
-            checkbox_click: root.checkbox_callback
-            text: "flute"
-            group: "high voice"
+    # GridLayout:
+    #     cols: 5
+    #     SimpleLabel:
+    #         text: "high voice"
+    #     BoxLayout:
+    #         CheckBox:
+    #             id: hv0
+    #             group: "high voice"
+    #             # on_active: root.checkbox_click(self, root.group, root.text, self.active) 
+    #         PressLabel:
+    #             on_press: hv0._do_press()
+    #             text: "piano"
+    #     BoxLayout:
+    #         CheckBox:
+    #             id: hv1
+    #             group: "high voice"
+    #             # on_active: root.checkbox_click(self, root.group, root.text, self.active) 
+    #         PressLabel:
+    #             on_press: hv1._do_press()
+    #             text: "violin"
+    #     BoxLayout:
+    #         CheckBox:
+    #             id: hv2
+    #             group: "high voice"
+    #             # on_active: root.checkbox_click(self, root.group, root.text, self.active) 
+    #         PressLabel:
+    #             on_press: hv2._do_press()
+    #             text: "guitar"
+    #     BoxLayout:
+    #         CheckBox:
+    #             id: hv3
+    #             group: "high voice"
+    #             # on_active: root.checkbox_click(self, root.group, root.text, self.active) 
+    #         PressLabel:
+    #             on_press: hv3._do_press()
+    #             text: "flute"
+    #     SimpleLabel:
+    #         text: "mid voice"
+    #     LabelCheckBox:
+    #         checkbox_click: root.checkbox_callback
+    #         text: "piano"
+    #         group: "mid voice"
+    #     LabelCheckBox:
+    #         checkbox_click: root.checkbox_callback
+    #         text: "viola"
+    #         group: "mid voice"
+    #     LabelCheckBox:
+    #         checkbox_click: root.checkbox_callback
+    #         text: "guitar"
+    #         group: "mid voice"
+    #     SimpleLabel:
+    #         text: "     "
 
-        SimpleLabel:
-            text: "mid voice"
-        LabelCheckBox:
-            checkbox_click: root.checkbox_callback
-            text: "piano"
-            group: "mid voice"
-        LabelCheckBox:
-            checkbox_click: root.checkbox_callback
-            text: "viola"
-            group: "mid voice"
-        LabelCheckBox:
-            checkbox_click: root.checkbox_callback
-            text: "guitar"
-            group: "mid voice"
-        SimpleLabel:
-            text: "     "
-
-        SimpleLabel:
-            text: "low voice"
-        LabelCheckBox:
-            checkbox_click: root.checkbox_callback
-            text: "piano"
-            group: "low voice"
-        LabelCheckBox:
-            checkbox_click: root.checkbox_callback
-            text: "cello"
-            group: "low voice"
-        LabelCheckBox:
-            checkbox_click: root.checkbox_callback
-            text: "bass"
-            group: "low voice"
-        SimpleLabel:
-            text: "     "
+    #     SimpleLabel:
+    #         text: "low voice"
+    #     LabelCheckBox:
+    #         checkbox_click: root.checkbox_callback
+    #         text: "piano"
+    #         group: "low voice"
+    #     LabelCheckBox:
+    #         checkbox_click: root.checkbox_callback
+    #         text: "cello"
+    #         group: "low voice"
+    #     LabelCheckBox:
+    #         checkbox_click: root.checkbox_callback
+    #         text: "bass"
+    #         group: "low voice"
+    #     SimpleLabel:
+    #         text: "     "
 
 <GenrePopup>:
     size_hint: .7, .7
