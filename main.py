@@ -53,6 +53,50 @@ THEME = {
 }
 
 
+class Checkboxes():
+    def __init__(self, labels_and_defaults):
+        self.labels = {}
+        self.init_active = {}
+        for group in labels_and_defaults:
+            labels, index_active = labels_and_defaults[group]
+            print(len(labels), index_active)
+            self.labels[group] = labels
+            self.init_active[group] = index_active
+
+    def get_labels_dict(self):
+        return self.labels.copy()
+
+    def get_init_active_dict(self):
+        return self.init_active.copy()
+
+
+##################### INSTRUMENTS!! #########################
+# {group: (labels_list, default_index_selected)}
+INSTRUMENT_CHECKBOXES = Checkboxes({
+    "high voice": (["piano", "violin", "guitar", "flute"], 0),
+    "mid voice": (["piano", "viola", "guitar"], 0),
+    "low voice": (["piano", "cello", "bass"], 0)
+})
+ALL_PIANO_SELECTED = {
+    "high voice": 0,
+    "mid voice": 0,
+    "low voice": 0
+}
+ORCHESTRA = {
+    "high voice": 1,
+    "mid voice": 1,
+    "low voice": 1
+}
+# ... and so on! keep filling this out
+# use set_checkboxes(ORCHESTRA) to set checkboxes
+##############################################################
+
+######################## GENRES!! ############################
+GENRE_CHECKBOXES = Checkboxes({
+    "GENRE": (["classical", "pop", "jazz"], 0)
+})
+##############################################################
+
 class StartPopup(Popup):
     def __init__(self, **kwargs):
         super(StartPopup, self).__init__(**kwargs)
@@ -65,24 +109,22 @@ class VolumePopup(Popup):
 
 
 
-class InstrumentPopup(Popup):
-    def __init__(self, callback):
-        super(InstrumentPopup, self).__init__()
+class CheckboxPopup(Popup):
+    def __init__(self, callback, title, checkboxes):
+        super(CheckboxPopup, self).__init__()
         self.instrument_callback = callback
-        self.checkbox_labels = {
-            "high voice": ["piano", "violin", "guitar", "flute"],
-            "mid voice": ["piano", "viola", "guitar"],
-            "low voice": ["piano", "cello", "bass"]
-        }
         
-        self.checkboxes = {
-            "high voice": [],
-            "mid voice": [],
-            "low voice": []
-        }
+        self.title = title
+        self.checkbox_labels = checkboxes.get_labels_dict()
+
+        # set up checkboxes
+        self.checkboxes = {}
+        max_items = -1 # for checkbox layout
+        for group in self.checkbox_labels:
+            max_items = max(len(self.checkbox_labels[group]), max_items)
+            self.checkboxes[group] = []
 
         # creating the checkbox layout
-        max_items = 4
         self.layout = GridLayout(cols = (max_items+1))
         for i in self.checkbox_labels:
             self.layout.add_widget(SimpleLabel(text=i))
@@ -106,19 +148,15 @@ class InstrumentPopup(Popup):
 
 
         # sets the current choices as active
-        current_active ={
-            "high voice": 0,
-            "mid voice": 1,
-            "low voice": 2
-        }
-        self.set_checkboxes(current_active)
+        self.set_checkboxes(checkboxes.get_init_active_dict())
     
     def set_checkboxes(self, option_dict):
         '''
         Takes in a dictionary of group: index
-        looks like self.current_active
+        looks like self.init_active
         sets new items as active
         '''
+        print(option_dict)
         for group in option_dict:
             new_index = option_dict[group]
             group_checkboxes = self.checkboxes[group]
@@ -172,11 +210,11 @@ class IntroScreen(BaseWidget):
     image = "data/bedroom.jpg"
     def __init__(self):
         super(IntroScreen, self).__init__()
-        self.genre_popup = GenrePopup(self.genre_callback)
+        self.genre_popup = CheckboxPopup(self.genre_callback, "GENRE", GENRE_CHECKBOXES)
         self.volume_popup = VolumePopup(self.slider_callback)
         self.record_popup = RecordPopup(
             self.init_recording, self.toggle_playing)
-        self.instruments_popup = InstrumentPopup(self.instrument_callback)
+        self.instruments_popup = CheckboxPopup(self.instrument_callback, "INSTRUMENTS", INSTRUMENT_CHECKBOXES)
 
         self.audio = Audio(2, input_func=self.receive_audio,
                            num_input_channels=1)
