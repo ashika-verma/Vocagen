@@ -18,6 +18,8 @@ from kivy.uix.dropdown  import DropDown
 from common.screen import ScreenManager, Screen
 from common.gfxutil import topleft_label, CEllipse, KFAnim, AnimGroup, CLabelRect
 from common.core import BaseWidget, run
+from common.metro import Metronome
+from common.clock import Clock, SimpleTempoMap, AudioScheduler, kTicksPerQuarter, quantize_tick_up
 from kivy.graphics.instructions import InstructionGroup
 from kivy.graphics import Color, Ellipse, Line, Rectangle
 from kivy.uix.boxlayout import BoxLayout 
@@ -107,7 +109,8 @@ class IntroScreen(BaseWidget):
         super(IntroScreen, self).__init__()
         self.genre_popup = GenrePopup(self.genre_callback)
         self.volume_popup = VolumePopup(self.slider_callback)
-        self.record_popup = RecordPopup(self.init_recording, self.play_recording)
+        self.record_popup = RecordPopup(
+            self.init_recording, self.toggle_playing)
         self.instruments_popup = InstrumentPopup(self.instrument_callback)
 
         self.audio = Audio(2, input_func=self.receive_audio,
@@ -117,6 +120,7 @@ class IntroScreen(BaseWidget):
         self.pitch = PitchDetector()
         self.recorder = VoiceAudioWriter('data')
         self.playing = False
+        self.cmd = None
 
         self.scene = Scene()
         self.add_widget(self.scene)
@@ -141,6 +145,7 @@ class IntroScreen(BaseWidget):
         # create TempoMap, AudioScheduler
         self.tempo_map = SimpleTempoMap(120)
         self.sched = AudioScheduler(self.tempo_map)
+        self.metro = Metronome(self.sched, self.synth)
 
         # connect scheduler into audio system
         self.mixer.add(self.sched)
@@ -151,6 +156,8 @@ class IntroScreen(BaseWidget):
 
         # live Generator
         self.live_wave = None
+
+        
         
     def genre_callback(self, value, label):
         pass
@@ -180,13 +187,21 @@ class IntroScreen(BaseWidget):
                     self.sched, self.synth, i+1, self.instruments[i][self.indices[i]][1], 
                     converted_midi_duration[i+1], True)
             if self.playing:
-                self.play_recording()
+                self.play_recording(1)
         
     def slider_callback(self, voice, value):
         pass
 
     def on_update(self):
         self.audio.on_update()
+
+    def on_key_down(self, keycode, modifiers):
+        if keycode[1] == 'm':
+            self.metro.toggle()
+        bpm_adj = lookup(keycode[1], ('up', 'down'), (10, -10))
+        if bpm_adj:
+            new_tempo = self.tempo_map.get_tempo() + bpm_adj
+            self.tempo_map.set_tempo(new_tempo, self.sched.get_time())
 
     def receive_audio(self, frames, num_channels):
         assert(num_channels == 1)
@@ -255,14 +270,43 @@ class IntroScreen(BaseWidget):
                         self.sched, self.synth, 1, self.instruments[i][self.indices[i]][1], 
                         converted_midi_duration[i+1], True)
 
-    def play_recording(self):
-        self.playing = True
+    def play_recording(self, tick):
         for i in self.seq:
             if i is not None:
                 i.start()
         if self.live_wave:
             self.live_wave.play()
             self.mixer.add(self.live_wave)
+
+    def start_playing(self):
+        if self.playing:
+            return
+        
+        self.playing = True
+
+        now = self.sched.get_tick()
+        next_beat = quantize_tick_up(now, kTicksPerQuarter*4)
+        self.cmd = self.sched.post_at_tick(self.play_recording, next_beat)
+
+    def stop_playing(self):
+        if not self.playing:
+            return
+
+        self.playing = False
+        for i in self.seq:
+            i.stop()
+        self.live_wave.reset()
+
+        self.sched.cancel(self.cmd)
+        self.cmd = None
+
+    def toggle_playing(self):
+        print('yeehaw')
+        print(self.playing)
+        if self.playing:
+            self.stop_playing()
+        else:
+            self.start_playing()
 
 class ImageButton(ButtonBehavior, Image):
     pass
