@@ -191,10 +191,10 @@ class StoragePopup(Popup):
         current_index_selected = self.get_selected_index()
         if current_index_selected < 0:
             return
+        if current_index_selected not in self.wave_gens.keys():
+            return
         # get the saved recording
         new_wave_gen, sequencers = self.wave_gens[current_index_selected]
-        if not new_wave_gen:
-            return
         # replace the live wave in the larger scene
         self.set_wave_callback(new_wave_gen, sequencers)
 
@@ -205,6 +205,8 @@ class StoragePopup(Popup):
 
         # save the current live wave into self.wave_gens[current_index_selected]
         current_wave_and_seqs = self.get_wave_callback()
+        if not current_wave_and_seqs:
+            return
         self.wave_gens[current_index_selected] = current_wave_and_seqs
 
         # indicate whether a wave generator is saved at a certain index
@@ -335,6 +337,7 @@ class IntroScreen(BaseWidget):
 
     def on_update(self):
         self.audio.on_update()
+        self.scene.on_update()
 
     def on_key_down(self, keycode, modifiers):
         if keycode[1] == 'm':
