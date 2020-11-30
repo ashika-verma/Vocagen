@@ -284,6 +284,7 @@ class IntroScreen(BaseWidget):
         self.tenor = [((52,69),(0,0)),((52,69),(0,41)),((45,64),(0,26))]
         self.alto = [((57,77),(0,0)),((60,79),(0,40)),((52,72),(0,29)),((67,86),(0,73))]
         self.instruments = [self.bass,self.tenor,self.alto]
+        self.genre = 'pop'
         
         self.indices = [0,0,0]
 
@@ -310,7 +311,15 @@ class IntroScreen(BaseWidget):
         self.current_wave_file = None
         
     def genre_callback(self, value, label):
-        pass
+        self.genre = value
+        if value == 'classical':
+            self.instruments_popup.set_checkboxes(ORCHESTRA)
+            self.indices = [1,1,1]
+            self.instrument_callback(None, None)
+        if value == 'pop':
+            self.instruments_popup.set_checkboxes(POP)
+            self.indices = [2,2,0]
+            self.instrument_callback(None, None)
     
     def instrument_callback(self, value, label):
         if label == 'high voice':
@@ -324,7 +333,7 @@ class IntroScreen(BaseWidget):
                 i.stop()
             self.live_wave.reset()
             #reharmonize and update NoteSequencers
-            duration_midi = harmony.harmonize(self.midi_notes, brange = self.bass[self.indices[0]][0],
+            duration_midi = harmony.harmonize(self.midi_notes, self.genre, brange = self.bass[self.indices[0]][0],
                                               trange = self.tenor[self.indices[1]][0],
                                               arange = self.alto[self.indices[2]][0])
             tempo = self.tempo_map.get_tempo()
@@ -457,7 +466,7 @@ class IntroScreen(BaseWidget):
                     good = True
                     break
             if good:
-                duration_midi = harmony.harmonize(duration_midi, brange = self.bass[self.indices[0]][0],
+                duration_midi = harmony.harmonize(duration_midi, self.genre, brange = self.bass[self.indices[0]][0],
                                                   trange = self.tenor[self.indices[1]][0],
                                                   arange = self.alto[self.indices[2]][0])
                 #print([[i[1] for i in j] for j in duration_midi])
