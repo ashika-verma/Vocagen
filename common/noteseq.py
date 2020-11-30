@@ -16,7 +16,7 @@ class NoteSequencer(object):
     notes. Each note is ``(dur, pitch)``.
     """
 
-    def __init__(self, sched, synth, channel, program, notes, loop=True):
+    def __init__(self, sched, synth, channel, program, notes, callback=None, loop=True):
         """
         :param sched: The Scheduler object. Should keep track of ticks and
             allow commands to be scheduled.
@@ -31,6 +31,7 @@ class NoteSequencer(object):
         self.synth = synth
         self.channel = channel
         self.program = program
+        self.callback = callback
 
         self.notes = notes
         self.loop = loop
@@ -78,6 +79,11 @@ class NoteSequencer(object):
             self.start()
 
     def _note_on(self, tick, idx):
+
+        # Trigger callback if it exists
+        if not self.callback is None:
+            self.callback()
+
         # terminate current note:
         self._note_off()
 

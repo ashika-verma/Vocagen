@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.abspath('../lib'))
 
 import time
 import random
+import numpy as np
 
 from common.core import BaseWidget, run, lookup
 from common.gfxutil import topleft_label, CEllipse, KFAnim, AnimGroup
@@ -53,12 +54,15 @@ class InteractiveImage(Image):
 class FadingMusicNote(InstructionGroup):
     def __init__(self, pos=(0, 0)):
         super(FadingMusicNote, self).__init__()
-        self.body = Rectangle(pos=pos, size=(10, 10), texture=Img('./data/scene/eightnote.png').texture)
-        self.pop_anim = KFAnim((0, self.body.size[0]), (.5, 0))
-        self.pos_anim = KFAnim((0, pos[0], pos[1]), (.5, pos[0]+100, pos[1]+random.randint(-30, 30)))
+        self.body = Rectangle(pos=pos, size=(50, 50), texture=Img('./data/scene/eightnote.png').texture)
+        self.pop_anim = KFAnim((0, self.body.size[0]), (.5, self.body.size[0]), (1.0, 0))
+        mag = random.uniform(20, 30)
+        theta = random.uniform(0, 2*np.pi)
+        dx, dy = mag * np.cos(theta), mag * np.sin(theta)
+        self.pos_anim = KFAnim((0, pos[0], pos[1]), (.5, pos[0] + dx, pos[1] + dy))
         self.add(self.body)
         self.time = 0
-        self.active = False
+        self.active = True
         self.on_update(0)
 
     def on_update(self, dt):
@@ -257,9 +261,8 @@ class Scene(BaseWidget):
     def on_update(self):
         self.anim_group.on_update()
 
-    def on_key_down(self, keycode, modifiers):
-        if keycode[1] == 'a':
-            self.anim_group.add(FadingMusicNote())
+    def add_note_sprite(self):
+        self.anim_group.add(FadingMusicNote((320, 80)))
 
 
 if __name__ == "__main__":

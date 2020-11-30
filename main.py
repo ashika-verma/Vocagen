@@ -149,12 +149,12 @@ class CheckboxPopup(Popup):
             # creates fillers
             for j in range(max_items-len(checkbox_list)):
                 self.layout.add_widget(BoxLayout())
-        self.content = self.layout
+                self.content = self.layout
 
 
         # sets the current choices as active
         self.set_checkboxes(checkboxes.get_init_active_dict())
-    
+        
     def set_checkboxes(self, option_dict):
         '''
         Takes in a dictionary of group: index
@@ -175,7 +175,7 @@ class CheckboxPopup(Popup):
             self.instrument_callback(label, group)
         else:
             checkbox_instance._do_press()
-                
+            
 
 class SimpleLabel(Label):
     pass
@@ -320,7 +320,7 @@ class IntroScreen(BaseWidget):
             self.instruments_popup.set_checkboxes(POP)
             self.indices = [2,2,0]
             self.instrument_callback(None, None)
-    
+            
     def instrument_callback(self, value, label):
         if label == 'high voice':
             self.indices[2] = ['piano','violin','guitar','flute'].index(value)
@@ -331,8 +331,8 @@ class IntroScreen(BaseWidget):
         if self.live_wave is not None:
             for i in self.seq:
                 i.stop()
-            self.live_wave.reset()
-            #reharmonize and update NoteSequencers
+                self.live_wave.reset()
+                #reharmonize and update NoteSequencers
             duration_midi = harmony.harmonize(self.midi_notes, self.genre, brange = self.bass[self.indices[0]][0],
                                               trange = self.tenor[self.indices[1]][0],
                                               arange = self.alto[self.indices[2]][0])
@@ -344,7 +344,7 @@ class IntroScreen(BaseWidget):
             for i in range(3):
                 self.seq[i] = NoteSequencer(
                     self.sched, self.synth, i+1, self.instruments[i][self.indices[i]][1], 
-                    converted_midi_duration[i+1], True)
+                    converted_midi_duration[i+1], self.scene.add_note_sprite, True)
             if self.playing:
                 self.play_recording(1)
         
@@ -480,7 +480,7 @@ class IntroScreen(BaseWidget):
                 for i in range(3):
                     self.seq[i] = NoteSequencer(
                         self.sched, self.synth, i+1, self.instruments[i][self.indices[i]][1], 
-                        converted_midi_duration[i+1], True)
+                        converted_midi_duration[i+1], self.scene.add_note_sprite, True)
                     
     def play_recording(self, tick):
         for i in self.seq:
