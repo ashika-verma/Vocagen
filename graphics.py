@@ -4,10 +4,17 @@ import sys, os
 sys.path.insert(0, os.path.abspath('../lib'))
 
 from common.core import BaseWidget, run, lookup
+from common.gfxutil import topleft_label, CEllipse, KFAnim, AnimGroup
 
 from kivy.uix.image import Image
+from kivy.core.image import Image as Img
 from kivy.uix.widget import Widget
 from kivy.core.window import Window
+from kivy.graphics import Color, Ellipse, Rectangle, Line
+from kivy.graphics.instructions import InstructionGroup
+from random import random, randint
+
+
 
 class InteractiveImage(Image):
     def __init__(self, **kwargs):
@@ -41,6 +48,31 @@ class InteractiveImage(Image):
         if self.collide_point(*touch.pos):
             if not self.callback is None:
                 self.callback()
+
+
+class FadingMusicNote(InstructionGroup):
+    def __init__(self, pos=(0, 0)):
+        super(FadingMusicNote, self).__init__()
+        self.body = Rectangle(pos=pos, size=(10, 10), texture=Img('./data/scene/eightnote.png').texture)
+        self.pop_anim = KFAnim((0, self.body.size[0]), (.5, 0))
+        self.pos_anim = KFAnim((0, pos[0], pos[1]), (.5, pos[0]+100, pos[1]+randint(-30, 30)))
+        self.add(self.body)
+        self.time = 0
+        self.active = False
+        self.on_update(0)
+
+    def on_update(self, dt):
+        # the disappearing animation just reduces the size
+        new_size = self.pop_anim.eval(self.time)
+        new_pos = self.pos_anim.eval(self.time)
+        self.body.size = (new_size, new_size)
+        self.body.pos = new_pos
+        self.time += dt
+        return self.pop_anim.is_active(self.time)
+
+    def start_anim(self):
+        self.active = True
+
 
 class Scene(BaseWidget):
     def __init__(self):
@@ -87,6 +119,11 @@ class Scene(BaseWidget):
         self.storage.set_callback(lambda: print("storage"))
         self.add_widget(self.storage)
 
+        # Flying music notes
+        self.anim_group = AnimGroup()
+        self.canvas.add(self.anim_group)
+        self.anim_group.add(FadingMusicNote())
+
     def on_layout(self, win_size):
         self.background.size = win_size
         self.amp.size = win_size
@@ -95,6 +132,14 @@ class Scene(BaseWidget):
         self.mic.size = win_size
         self.radio.size = win_size
         self.storage.size = win_size
+
+    def on_update(self):
+        self.anim_group.on_update()
+
+    def on_key_down(self, keycode, modifiers):
+        if keycode[1] == 'a':
+            self.anim_group.add(FadingMusicNote())
+
 
 if __name__ == "__main__":
     run(Scene())

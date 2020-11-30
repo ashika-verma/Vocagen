@@ -211,7 +211,6 @@ class VoiceAudioWriter(AudioWriter):
             duration_midi = self.convert_times_to_duration(self.pitch_and_time, len(output))
             write_wave_file(output, self.num_channels, filename)
 
-            
             live_wave = WaveArray(output, self.num_channels)
             wave_gen = WaveGenerator(live_wave, True)
             #wave_gen.set_gain(0.7)
