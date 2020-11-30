@@ -149,7 +149,7 @@ class CheckboxPopup(Popup):
             # creates fillers
             for j in range(max_items-len(checkbox_list)):
                 self.layout.add_widget(BoxLayout())
-                self.content = self.layout
+        self.content = self.layout
 
 
         # sets the current choices as active
