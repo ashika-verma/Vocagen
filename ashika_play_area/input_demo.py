@@ -242,7 +242,7 @@ class VoiceAudioWriter(AudioWriter):
     def convert_times_to_duration(self, midi_timestamps, total_frames):
         total_time = total_frames/ Audio.sample_rate
         duration_midi = []
-        print(midi_timestamps)
+        #print(midi_timestamps)
         for i in range(len(midi_timestamps)-1):
             current_midi, current_timestamp = midi_timestamps[i]
             _, next_timestamp = midi_timestamps[i+1]

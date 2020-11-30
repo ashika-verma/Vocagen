@@ -87,13 +87,18 @@ ORCHESTRA = {
     "mid voice": 1,
     "low voice": 1
 }
+POP = {
+    "high voice": 0,
+    "mid voice": 2,
+    "low voice": 2
+}
 # ... and so on! keep filling this out
 # use set_checkboxes(ORCHESTRA) to set checkboxes
 ##############################################################
 
 ######################## GENRES!! ############################
 GENRE_CHECKBOXES = Checkboxes({
-    "GENRE": (["classical", "pop", "jazz"], 0)
+    "GENRE": (["classical", "pop", "tbd"], 0)
 })
 ##############################################################
 
@@ -259,6 +264,7 @@ class IntroScreen(BaseWidget):
         self.pitch = PitchDetector()
         self.recorder = VoiceAudioWriter('data')
         self.playing = False
+        self.recording = False
         self.cmd = None
 
         self.scene = Scene()
@@ -286,6 +292,7 @@ class IntroScreen(BaseWidget):
         self.tempo_map = SimpleTempoMap(120)
         self.sched = AudioScheduler(self.tempo_map)
         self.metro = Metronome(self.sched, self.synth)
+        self.start_tick = None
 
         # connect scheduler into audio system
         self.mixer.add(self.sched)
@@ -318,7 +325,7 @@ class IntroScreen(BaseWidget):
             duration_midi = harmony.harmonize(self.midi_notes, brange = self.bass[self.indices[0]][0],
                                               trange = self.tenor[self.indices[1]][0],
                                               arange = self.alto[self.indices[2]][0])
-            tempo = 120
+            tempo = self.tempo_map.get_tempo()
             multiplier = 1/60*tempo*480
             converted_midi_duration = [[(i*multiplier, j)
                                         for i, j in k] for k in duration_midi]
@@ -340,8 +347,8 @@ class IntroScreen(BaseWidget):
         if keycode[1] == 'm':
             self.metro.toggle()
         bpm_adj = lookup(keycode[1], ('up', 'down'), (10, -10))
-        if bpm_adj:
-            new_tempo = self.tempo_map.get_tempo() + bpm_adj
+        if bpm_adj and not self.playing and not self.recording:
+            new_tempo = max(self.tempo_map.get_tempo() + bpm_adj, 30)
             self.tempo_map.set_tempo(new_tempo, self.sched.get_time())
 
     def receive_audio(self, frames, num_channels):
@@ -365,8 +372,11 @@ class IntroScreen(BaseWidget):
 
 
     def init_recording(self):
+        if not self.recording:
+            self.start_tick = self.sched.get_tick()
         data = self.recorder.toggle()
         if not data:
+            self.recording = True
             if self.live_wave is not None:
                 try:
                     self.mixer.remove(self.live_wave)
@@ -377,6 +387,8 @@ class IntroScreen(BaseWidget):
                     i.stop()
             self.playing = False
         else:
+            self.recording = False
+            stop_tick = self.sched.get_tick()
             wave_gen, filename, duration_midi = data
             self.current_wave_file = WaveFile(filename)
             #ignore short notes
@@ -387,6 +399,46 @@ class IntroScreen(BaseWidget):
                     duration_midi.pop(i)
                 else:
                     i+=1
+            duration_midi[0] = (duration_midi[0][0] - .1, duration_midi[0][1])
+            ticks = [(int(note[0] * 480 * self.tempo_map.get_tempo() / 60), note[1])
+                     for note in duration_midi]
+            ticks[0] = (ticks[0])
+            duration_midi = []
+            tick_length = sum(i[0] for i in ticks)
+            curr_beat = int(480 - self.start_tick%480 + .22 * 8 * self.tempo_map.get_tempo()) % 480
+            ind = 0
+            ticks_passed = 0
+            while tick_length > 0:
+                tot = 0
+                times = {}
+                while tot < curr_beat and ind < len(ticks):
+                    left = ticks[ind][0] - ticks_passed
+                    if left > curr_beat - tot:
+                        ticks_passed += curr_beat-tot
+                        if ticks[ind][1] in times:
+                            times[ticks[ind][1]] += curr_beat-tot
+                        else:
+                            times[ticks[ind][1]] = curr_beat-tot
+                        tot = curr_beat
+                    else:
+                        tot += left
+                        ticks_passed = 0
+                        if ticks[ind][1] in times:
+                            times[ticks[ind][1]] += left
+                        else:
+                            times[ticks[ind][1]] = left
+                        ind += 1
+                big = 80
+                note = 0
+                print(times)
+                for guy in times:
+                    if times[guy] > big and guy != 0:
+                        note = guy
+                        big = times[guy]
+                duration_midi.append((60*curr_beat/480/self.tempo_map.get_tempo(), note))
+                tick_length -= curr_beat
+                curr_beat = min(480, tick_length)
+            duration_midi = [(0.1,0)] + duration_midi
             self.midi_notes = duration_midi
             #find harmonies
             self.live_wave = wave_gen
@@ -395,15 +447,14 @@ class IntroScreen(BaseWidget):
                 if i[1] > 0:
                     good = True
                     break
-                
             if good:
                 duration_midi = harmony.harmonize(duration_midi, brange = self.bass[self.indices[0]][0],
                                                   trange = self.tenor[self.indices[1]][0],
                                                   arange = self.alto[self.indices[2]][0])
-                print([[i[1] for i in j] for j in duration_midi])
+                #print([[i[1] for i in j] for j in duration_midi])
     
                 # cheat to use SimpleTempoMap
-                tempo = 120
+                tempo = self.tempo_map.get_tempo()
                 multiplier = 1/60*tempo*480
                 converted_midi_duration = [[(i*multiplier, j)
                                             for i, j in k] for k in duration_midi]
@@ -412,7 +463,7 @@ class IntroScreen(BaseWidget):
                     self.seq[i] = NoteSequencer(
                         self.sched, self.synth, 1, self.instruments[i][self.indices[i]][1], 
                         converted_midi_duration[i+1], True)
-
+                    
     def play_recording(self, tick):
         for i in self.seq:
             if i is not None:
@@ -425,9 +476,9 @@ class IntroScreen(BaseWidget):
     def start_playing(self):
         if self.playing:
             return
-        
+        self.metro.stop()
         self.playing = True
-
+        
         now = self.sched.get_tick()
         next_beat = quantize_tick_up(now, kTicksPerQuarter*4)
         self.cmd = self.sched.post_at_tick(self.play_recording, next_beat)
