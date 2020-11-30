@@ -98,7 +98,7 @@ POP = {
 
 ######################## GENRES!! ############################
 GENRE_CHECKBOXES = Checkboxes({
-    "GENRE": (["classical", "pop", "tbd"], 0)
+    "GENRE": (["classical", "pop", "Coming\nsoon!"], 0)
 })
 ##############################################################
 
