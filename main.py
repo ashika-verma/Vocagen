@@ -333,7 +333,13 @@ class IntroScreen(BaseWidget):
                 self.play_recording(1)
         
     def slider_callback(self, voice, value):
-        pass
+        val = int(value)
+        idx = [ "bass","tenor", "alto", "melody"].index(voice)+1
+        if idx < 4:
+            self.synth.cc(idx, 7, val)
+        else:
+            if self.live_wave:
+                self.live_wave.set_gain(val/100)
 
     def on_update(self):
         self.audio.on_update()
@@ -413,7 +419,7 @@ class IntroScreen(BaseWidget):
                 #make NoteSequencers
                 for i in range(3):
                     self.seq[i] = NoteSequencer(
-                        self.sched, self.synth, 1, self.instruments[i][self.indices[i]][1], 
+                        self.sched, self.synth, i+1, self.instruments[i][self.indices[i]][1], 
                         converted_midi_duration[i+1], True)
 
     def play_recording(self, tick):
