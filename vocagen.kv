@@ -128,6 +128,10 @@
             width: 2
             rectangle: self.x, self.y, self.width, self.height
 
+<RecordImage@Image>:
+    source: "./data/scene/record.png"
+    size: self.texture_size
+
 <StoragePopup>:
     size_hint: .7, .7
     auto_dismiss: True
@@ -141,6 +145,11 @@
         cols: 1
         GridLayout:
             cols: 5
+            RecordImage
+            RecordImage
+            RecordImage
+            RecordImage
+            RecordImage
             MyToggleButton:
                 text: "0"
             MyToggleButton:
@@ -154,6 +163,11 @@
             
         GridLayout:
             cols: 5
+            RecordImage
+            RecordImage
+            RecordImage
+            RecordImage
+            RecordImage
             MyToggleButton:
                 text: "5"
             MyToggleButton:
