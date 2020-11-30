@@ -271,11 +271,11 @@ class IntroScreen(BaseWidget):
 
         self.scene = Scene()
         self.add_widget(self.scene)
-        self.scene.radio.set_callback(self.genre_popup.open)
-        self.scene.amp.set_callback(self.volume_popup.open)
-        self.scene.mic.set_callback(self.record_popup.open)
-        self.scene.guitar.set_callback(self.instruments_popup.open)
-        self.scene.storage.set_callback(self.storage_popup.open)
+        self.scene.foreground.radio.set_callback(self.genre_popup.open)
+        self.scene.foreground.amp.set_callback(self.volume_popup.open)
+        self.scene.foreground.mic.set_callback(self.record_popup.open)
+        self.scene.foreground.guitar.set_callback(self.instruments_popup.open)
+        self.scene.foreground.storage.set_callback(self.storage_popup.open)
 
         self.cur_pitch = 0
         self.midi_notes = None
