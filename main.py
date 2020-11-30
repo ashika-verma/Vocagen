@@ -21,12 +21,13 @@ from common.screen import ScreenManager, Screen
 from common.gfxutil import topleft_label, CEllipse, KFAnim, AnimGroup, CLabelRect
 from common.core import BaseWidget, run
 from common.metro import Metronome
+from common.wavesrc import WaveFile
 from common.clock import Clock, SimpleTempoMap, AudioScheduler, kTicksPerQuarter, quantize_tick_up
 from kivy.graphics.instructions import InstructionGroup
 from kivy.graphics import Color, Ellipse, Line, Rectangle
 from kivy.uix.boxlayout import BoxLayout 
 from kivy.uix.label import Label
-from kivy.uix.behaviors import ButtonBehavior
+from kivy.uix.behaviors import ButtonBehavior, ToggleButtonBehavior
 from ashika_play_area.input_demo import *
 
 from graphics import Scene
@@ -59,7 +60,6 @@ class Checkboxes():
         self.init_active = {}
         for group in labels_and_defaults:
             labels, index_active = labels_and_defaults[group]
-            print(len(labels), index_active)
             self.labels[group] = labels
             self.init_active[group] = index_active
 
@@ -156,7 +156,6 @@ class CheckboxPopup(Popup):
         looks like self.init_active
         sets new items as active
         '''
-        print(option_dict)
         for group in option_dict:
             new_index = option_dict[group]
             group_checkboxes = self.checkboxes[group]
@@ -171,19 +170,58 @@ class CheckboxPopup(Popup):
             self.instrument_callback(label, group)
         else:
             checkbox_instance._do_press()
-            
-
+                
 
 class SimpleLabel(Label):
     pass
 
 
-class GenrePopup(Popup):
-    def __init__(self, callback):
-        super(GenrePopup, self).__init__()
-        self.callback =  callback
-    def checkbox_callback(self, obj, group, label, value):
-        self.callback(value, label)
+class StoragePopup(Popup):
+    def __init__(self, get_wave_callback, set_wave_callback):
+        super(StoragePopup, self).__init__()
+        self.get_wave_callback = get_wave_callback
+        self.set_wave_callback = set_wave_callback
+        self.wave_gens = {}
+
+        # on record button press, select a wave generator
+        # on save button press, set a wave generator to current wave
+        # on play button press, set live wave to selected button
+    
+    def on_play_button_press(self):
+        current_index_selected = self.get_selected_index()
+        if current_index_selected < 0:
+            return
+        # get the saved recording
+        new_wave_gen, sequencers = self.wave_gens[current_index_selected]
+        if not new_wave_gen:
+            return
+        # replace the live wave in the larger scene
+        self.set_wave_callback(new_wave_gen, sequencers)
+
+    def on_save_button_press(self):
+        current_index_selected = self.get_selected_index()
+        if current_index_selected<0:
+            return
+
+        # save the current live wave into self.wave_gens[current_index_selected]
+        current_wave_and_seqs = self.get_wave_callback()
+        self.wave_gens[current_index_selected] = current_wave_and_seqs
+
+        # indicate whether a wave generator is saved at a certain index
+
+
+    def get_selected_index(self):
+        # gets the index of the button which is presently selected
+        # returns -1 if no button is selected
+        widgets = ToggleButtonBehavior.get_widgets('storage')
+        index = -1
+        for idx in range(len(widgets)):
+            widget = widgets[idx]
+            if widget.state == "down":
+                index = idx
+        return index
+
+    
 
 
 
@@ -212,12 +250,10 @@ class IntroScreen(BaseWidget):
         super(IntroScreen, self).__init__()
         self.genre_popup = CheckboxPopup(self.genre_callback, "GENRE", GENRE_CHECKBOXES)
         self.volume_popup = VolumePopup(self.slider_callback)
-        self.record_popup = RecordPopup(
-            self.init_recording, self.toggle_playing)
+        self.record_popup = RecordPopup(self.init_recording, self.toggle_playing)
         self.instruments_popup = CheckboxPopup(self.instrument_callback, "INSTRUMENTS", INSTRUMENT_CHECKBOXES)
-
-        self.audio = Audio(2, input_func=self.receive_audio,
-                           num_input_channels=1)
+        self.storage_popup = StoragePopup(self.get_live_wave, self.set_live_wave)
+        self.audio = Audio(2, input_func=self.receive_audio,num_input_channels=1)
         self.mixer = Mixer()
         self.audio.set_generator(self.mixer)
         self.pitch = PitchDetector()
@@ -231,6 +267,7 @@ class IntroScreen(BaseWidget):
         self.scene.amp.set_callback(self.volume_popup.open)
         self.scene.mic.set_callback(self.record_popup.open)
         self.scene.guitar.set_callback(self.instruments_popup.open)
+        self.scene.storage.set_callback(self.storage_popup.open)
 
         self.cur_pitch = 0
         self.midi_notes = None
@@ -260,7 +297,8 @@ class IntroScreen(BaseWidget):
         # live Generator
         self.live_wave = None
 
-        
+        # current .wav file
+        self.current_wave_file = None
         
     def genre_callback(self, value, label):
         pass
@@ -337,8 +375,10 @@ class IntroScreen(BaseWidget):
             for i in self.seq:
                 if i is not None:
                     i.stop()
+            self.playing = False
         else:
             wave_gen, filename, duration_midi = data
+            self.current_wave_file = WaveFile(filename)
             #ignore short notes
             i=0
             while i<len(duration_midi):
@@ -379,7 +419,8 @@ class IntroScreen(BaseWidget):
                 i.start()
         if self.live_wave:
             self.live_wave.play()
-            self.mixer.add(self.live_wave)
+            if self.live_wave not in self.mixer.generators:
+                self.mixer.add(self.live_wave)
 
     def start_playing(self):
         if self.playing:
@@ -404,16 +445,36 @@ class IntroScreen(BaseWidget):
         self.cmd = None
 
     def toggle_playing(self):
-        print('yeehaw')
         print(self.playing)
         if self.playing:
             self.stop_playing()
         else:
             self.start_playing()
 
+    def get_live_wave(self):
+        if self.live_wave:
+            return WaveGenerator(self.current_wave_file, True), self.seq.copy()
+
+    def set_live_wave(self, new_live_wave, note_sequencers):
+        if self.live_wave:
+            if self.live_wave is not None:
+                try:
+                    self.mixer.remove(self.live_wave)
+                except:
+                    pass
+
+            for i in self.seq:
+                if i is not None:
+                    i.stop()
+            self.seq = note_sequencers
+            for i in self.seq:
+                if i is not None:
+                    i.start()
+            self.live_wave = new_live_wave
+            self.mixer.add(self.live_wave)
+            self.start_playing()
 class ImageButton(ButtonBehavior, Image):
     pass
-
 
 class Vocagen(App):
 

@@ -213,7 +213,7 @@ class VoiceAudioWriter(AudioWriter):
 
             
             live_wave = WaveArray(output, self.num_channels)
-            wave_gen = WaveGenerator(live_wave, self.num_channels)
+            wave_gen = WaveGenerator(live_wave, True)
             #wave_gen.set_gain(0.7)
 
             # Reset information
@@ -242,6 +242,7 @@ class VoiceAudioWriter(AudioWriter):
     def convert_times_to_duration(self, midi_timestamps, total_frames):
         total_time = total_frames/ Audio.sample_rate
         duration_midi = []
+        print(midi_timestamps)
         for i in range(len(midi_timestamps)-1):
             current_midi, current_timestamp = midi_timestamps[i]
             _, next_timestamp = midi_timestamps[i+1]

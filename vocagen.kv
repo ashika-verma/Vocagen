@@ -3,24 +3,6 @@
     font_name: 'data/pixeljosh6'
     font_size: '15sp'
 
-<PressLabel@ButtonBehavior+Label>: 
-    color: 1, 1, 1, 1
-    font_name: 'data/pixeljosh6'
-    font_size: '15sp'
-
-<LabelCheckBox@BoxLayout>
-    text: ''
-    group: ''
-    checkbox_click: print
-
-    CheckBox:
-        id: cb
-        group: root.group
-        on_active: root.checkbox_click(self, root.group, root.text, self.active) 
-    PressLabel:
-        on_press: cb._do_press()
-        text: root.text
-
 <CheckboxPopup>:
     size_hint: .7, .7
     auto_dismiss: True
@@ -133,6 +115,65 @@
         Line:
             width: 2
             rectangle: self.x, self.y, self.width, self.height
+
+<MyToggleButton@ToggleButton>:
+    font_name: 'data/pixeljosh6'
+    font_size: '20sp'
+    background_color: 1, 0, 0, 1
+    group: 'storage'
+    canvas.before:
+        Color:
+            rgba: .5, 1, 1, 1
+        Line:
+            width: 2
+            rectangle: self.x, self.y, self.width, self.height
+
+<StoragePopup>:
+    size_hint: .7, .7
+    auto_dismiss: True
+    title: "STORAGE"
+    separator_color: .9,.4,.2,1
+    title_color: 1, 0, 0, 1
+    title_align: "center"
+    title_font: "data/pixeljosh6"
+    title_size: "20sp"
+    GridLayout:
+        cols: 1
+        GridLayout:
+            cols: 5
+            MyToggleButton:
+                text: "0"
+            MyToggleButton:
+                text: "1"
+            MyToggleButton:
+                text: "2"
+            MyToggleButton:
+                text: "3"
+            MyToggleButton:
+                text: "4"
+            
+        GridLayout:
+            cols: 5
+            MyToggleButton:
+                text: "5"
+            MyToggleButton:
+                text: "6"
+            MyToggleButton:
+                text: "7"
+            MyToggleButton:
+                text: "8"
+            MyToggleButton:
+                text: "9"
+        GridLayout:
+            cols: 2
+            MyButton:
+                text: "PLAY"
+                on_press: root.on_play_button_press()
+            MyButton:
+                text: "SAVE"
+                on_press: root.on_save_button_press()
+
+
 
 <StartPopup>:
     size_hint: .7, .7
