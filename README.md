@@ -3,7 +3,7 @@
 ## Instructions
 
 1. Copy the fluid synth sound font to the data folder (not included
-   in the zip archive to save space)
+   in github to save space)
    
 2. Run main.py
 
